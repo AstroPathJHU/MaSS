@@ -198,8 +198,8 @@ warning('off','MATLAB:table:ModifiedAndSavedVarnames')
 try
     BIDtbl = readtable(BatchIDxls);
     B = BIDtbl(:,{'Opal','Target',...
-        'TargetType','CoexpressionStatus','SegmentationStatus',...
-        'SegmentationHierarchy', 'ImageQA_QC'});
+    'TargetType','CoexpressionStatus','SegmentationStatus',...
+    'SegmentationHierarchy', 'ImageQA_QC', 'NumberofSegmentations'});
 catch
     return
 end
@@ -215,42 +215,18 @@ Markers.Opals = B.Opal;
 Markers.all = B.Target;
 %
 ii = strcmp('Tumor',B.ImageQA_QC);
-%
-% change Tumor marker designation to 'Tumor'
-%
-if sum(ii) ~= 0
-    Markers.all(ii) = {'Tumor'};
-    Markers.Tumor{1} = 'Tumor';
-end
-%
-ii = strcmp('Immune',B.ImageQA_QC);
+Markers.all_original = Markers.all;
 %
 % change Tumor marker designation to 'Tumor'
 %
 if sum(ii) == 1
-    Markers.Immune = Markers.all(ii);
+    Markers.all(ii) = {'Tumor'};
+    Markers.Tumor{1} = 'Tumor';
+elseif sum(ii) > 1
+    Markers.Tumor =  ' MaSS must have only one "Tumor" designation';
+    return
 else
-    Markers.Immune = ' Image QA/QC must have one and only one "Immune" designation';
-end
-%
-% Set up segmentation status to define number of segmentations and which is
-% the primary segmentation
-%
-SS = B.SegmentationStatus;
-SS = cell2mat(SS);
-SS = str2num(SS);
-%
-% get number of different segmentations
-%
-[~,y,~] = unique(SS);
-ii = y(1);
-%
-Markers.seg = Markers.all(ii);
-%
-Markers.altseg = cell(length(y)-1,1);
-for i1 = 2:length(y)
-    ii = y(i1);
-    Markers.altseg(i1-1) = Markers.all(ii);
+     Markers.Tumor{1} = '';
 end
 %
 % get lineage and expression markers
@@ -260,6 +236,42 @@ Markers.lin = Markers.all(LT);
 %
 ET = strcmp(B.TargetType,'Expression');
 Markers.expr = Markers.all(ET);
+%
+% get the markers with multiple segmentations, this will only be a
+% capability on expression markers
+%
+nsegs = B.NumberofSegmentations;
+nsegs = cellfun(@(x) str2double(x), nsegs, 'Uni',0);
+nsegs = cell2mat(nsegs);
+if find(nsegs(~ET) ~= 1)
+     Markers.nsegs =  [' MaSS can only handle expression markers',...
+         ' with multiple segmentations'];
+    return
+end
+Markers.nsegs = nsegs;
+%
+% Set up segmentation status to define number of segmentations and which is
+% the primary segmentation
+%
+SS = B.SegmentationStatus;
+SS = cell2mat(SS);
+SS = str2num(SS);
+SS = SS(nsegs == 1);
+mn = Markers.all(nsegs == 1);
+%
+% get number of different segmentations, remove markers with multiple
+% segmentations from the contention
+%
+[~,y,~] = unique(SS);
+ii = y(1);
+%
+Markers.seg = mn(ii);
+%
+Markers.altseg = cell(length(y)-1,1);
+for i1 = 2:length(y)
+    ii = y(i1);
+    Markers.altseg(i1-1) = mn(ii);
+end
 %
 % get coexpression status for lineage markers
 %
@@ -271,10 +283,16 @@ CS = CS(ii);
 %
 TCS = Markers.lin(ii);
 %
+% get segmentation heirarchy
+%
+SH = B.SegmentationHierarchy;
+Markers.SegHie = SH(LT);
+%
 % CS that is not NA in lineage markers; find which coexpressions are
 % acceptable
 %
 Markers.add = [];
+sego = [];
 for i1 = 1:length(CS)
     %
     % get current target and opal
@@ -293,7 +311,7 @@ for i1 = 1:length(CS)
         o1 = CStest{i2};
         T1 = TCStest{i2};
         %
-        % if the current target matches one of the targets in the rest
+        % if the current target matches one of the targets in the rest 
         %
         if contains(o1,o)
             %
@@ -301,15 +319,24 @@ for i1 = 1:length(CS)
             % contained together
             %
             if ~isempty(Markers.add) && sum(contains(Markers.add,T)...
-                    & contains(Markers.add,T1))
+                & contains(Markers.add,T1))
                 continue
             else
                 track = length(Markers.add) + 1;
                 Markers.add{track} = [T1,T];
+                ii = strcmp(T1, Markers.lin);
+                seg1 = Markers.SegHie(ii);
+                ii = strcmp(T, Markers.lin);
+                seg2 = Markers.SegHie(ii);
+                %
+                seg = max([str2num(seg1{1}),str2num(seg2{1})]);
+                sego{track} = num2str(seg);
             end
         end
     end
 end
+%
+Markers.SegHie = [Markers.SegHie;sego'];
 %
 % get coexpression status for expression markers
 %
@@ -323,20 +350,16 @@ for i1 = 1:length(CS)
     Markers.Coex{i1} = sum(x,2);
 end
 %
-% get segmentation heirarchy
-%
-SH = B.SegmentationHierarchy;
-Markers.SegHie = SH(LT);
-%
 %
 %
 Markers.Opals = cell2mat(Markers.Opals);
 Markers.Opals = str2num(Markers.Opals);
 %
 Markers.all = Markers.all';
+Markers.all_original = Markers.all_original';
 Markers.lin = Markers.lin';
 Markers.expr = Markers.expr';
-%Markers.add = Markers.add';
+Markers.nsegs = Markers.nsegs';
 Markers.seg = Markers.seg';
 Markers.altseg = Markers.altseg';
 Markers.SegHie = Markers.SegHie';
@@ -927,39 +950,46 @@ r = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5,...
     6, -6, 7, -7, 8, -8, 9, -9, 10, -10];
 marks = [];
 cols = [];
+ii = tp2.ExprPhenotype;
 %
-for i1 = 1:length(Markers.expr)
-    curmark = Markers.expr{i1};
-    curmark = lower(curmark);
+bin = [1,2,4,8,16,32,64,128];
+if length(Markers.expr) > 0
     %
-    curcol = mycol.expr(i1,:);
+    for i1 = length(Markers.expr):1
+        %curmark = Markers.expr{i1};
+        curmark = bin(i1);
+        %
+        curcol = mycol.expr(i1,:);
+        %
+        % x and y positions of cells for current phenotype
+        %
+        rows = ii - curmark;
+        ss = rows >= 0;
+        ii = rows * ss;
+        x = tp2(ss,'CellXPos');
+        y = tp2(ss, 'CellYPos');
+        %
+        x1 = table2array(x) + v2;
+        x2 = table2array(x) - v2;
+        %
+        y = table2array(y) - r(i1);
+        %
+        xy = [x1 y x2 y];
+        %
+        % create shape array for those phenotypes
+        %
+        hh = size(xy, 1);
+        marks = [marks;xy];
+        %
+        % create color array for those phenotypes
+        %
+        curcol = uint8(255 * curcol);
+        cols = [cols;repmat(curcol,hh,1)];
+    end
     %
-    % x and y positions of cells for current phenotype
-    %
-    ii = logical(tp2.(curmark));
-    x = tp2(ii,'CellXPos');
-    y = tp2(ii, 'CellYPos');
-    %
-    x1 = table2array(x) + v2;
-    x2 = table2array(x) - v2;
-    %
-    y = table2array(y) - r(i1);
-    %
-    xy = [x1 y x2 y];
-    %
-    % create shape array for those phenotypes
-    %
-    hh = size(xy, 1);
-    marks = [marks;xy];
-    %
-    % create color array for those phenotypes
-    %
-    curcol = uint8(255 * curcol);
-    cols = [cols;repmat(curcol,hh,1)];
+    imp = insertShape(imp,'Line',marks,'Color',cols,...
+        'Opacity',1,'SmoothEdges',false);
 end
-%
-imp = insertShape(imp,'Line',marks,'Color',cols,...
-    'Opacity',1,'SmoothEdges',false);
 %
 % rewrite legend over phenotypes
 %

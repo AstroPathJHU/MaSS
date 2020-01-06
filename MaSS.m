@@ -192,7 +192,7 @@ try
     BIDtbl = readtable(BatchIDxls);
     B = BIDtbl(:,{'Opal','Target',...
     'TargetType','CoexpressionStatus','SegmentationStatus',...
-    'SegmentationHierarchy', 'ImageQA_QC'});
+    'SegmentationHierarchy', 'ImageQA_QC', 'NumberofSegmentations'});
 catch
     return
 end
@@ -222,26 +222,6 @@ else
      Markers.Tumor{1} = '';
 end
 %
-% Set up segmentation status to define number of segmentations and which is
-% the primary segmentation
-%
-SS = B.SegmentationStatus;
-SS = cell2mat(SS);
-SS = str2num(SS);
-%
-% get number of different segmentations
-%
-[~,y,~] = unique(SS);
-ii = y(1);
-%
-Markers.seg = Markers.all(ii);
-%
-Markers.altseg = cell(length(y)-1,1);
-for i1 = 2:length(y)
-    ii = y(i1);
-    Markers.altseg(i1-1) = Markers.all(ii);
-end
-%
 % get lineage and expression markers
 %
 LT = strcmp(B.TargetType,'Lineage');
@@ -249,6 +229,42 @@ Markers.lin = Markers.all(LT);
 %
 ET = strcmp(B.TargetType,'Expression');
 Markers.expr = Markers.all(ET);
+%
+% get the markers with multiple segmentations, this will only be a
+% capability on expression markers
+%
+nsegs = B.NumberofSegmentations;
+nsegs = cellfun(@(x) str2double(x), nsegs, 'Uni',0);
+nsegs = cell2mat(nsegs);
+if find(nsegs(~ET) ~= 1)
+     Markers.nsegs =  [' MaSS can only handle expression markers',...
+         ' with multiple segmentations'];
+    return
+end
+Markers.nsegs = nsegs;
+%
+% Set up segmentation status to define number of segmentations and which is
+% the primary segmentation
+%
+SS = B.SegmentationStatus;
+SS = cell2mat(SS);
+SS = str2num(SS);
+SS = SS(nsegs == 1);
+mn = Markers.all(nsegs == 1);
+%
+% get number of different segmentations, remove markers with multiple
+% segmentations from the contention
+%
+[~,y,~] = unique(SS);
+ii = y(1);
+%
+Markers.seg = mn(ii);
+%
+Markers.altseg = cell(length(y)-1,1);
+for i1 = 2:length(y)
+    ii = y(i1);
+    Markers.altseg(i1-1) = mn(ii);
+end
 %
 % get coexpression status for lineage markers
 %
@@ -336,7 +352,7 @@ Markers.all = Markers.all';
 Markers.all_original = Markers.all_original';
 Markers.lin = Markers.lin';
 Markers.expr = Markers.expr';
-%Markers.add = Markers.add';
+Markers.nsegs = Markers.nsegs';
 Markers.seg = Markers.seg';
 Markers.altseg = Markers.altseg';
 Markers.SegHie = Markers.SegHie';
@@ -620,7 +636,9 @@ vars.names = cell(1,length(Markers.all)*8);
 vars.type = [repmat({'Mean'},1,4), repmat({'Total'},1,4)];
 vars.comp = repmat({'Nucleus', 'Membrane','EntireCell','Cytoplasm'},1,2);
 %
-% create DAPI column names
+% create DAPI column names -- there are additional vectors a2 - a4 are
+% created so that the program is capable of handling different inform
+% outputs
 %
 a(:,1)= cellfun(@(x,y)strcat(x,'DAPI','_DAPI_',...
     y,'_NormalizedCounts_TotalWeighting_'),vars.comp,vars.type,'Uni',0);
@@ -656,30 +674,51 @@ end
 %
 % put the strings into a single vector
 %
-zz =  horzcat(a(1,:),a(2,:),a(3,:),a(4,:),a(5,:),a(6,:),a(7,:));
+zz = a';
+zz = vertcat(zz(:))';
 vars.namesin = cellfun(@(x)shortenName(x),zz,'Uni',0);
 %
-zz = horzcat(a2(1,:),a2(2,:),a2(3,:),a2(4,:),...
-    a2(5,:),a2(6,:),a2(7,:));
+zz = a2';
+zz = vertcat(zz(:))';
 vars.namesin_original = cellfun(@(x)shortenName(x),zz,'Uni',0);
 %
-zz = horzcat(a3(1,:),a3(2,:),a3(3,:),a3(4,:),...
-    a3(5,:),a3(6,:),a3(7,:));
+zz = a3';
+zz = vertcat(zz(:))';
 vars.namesin_updatedinForm = cellfun(@(x)shortenName(x),zz,'Uni',0);
 %
-zz = horzcat(a4(1,:),a4(2,:),a4(3,:),a4(4,:),...
-    a4(5,:),a4(6,:),a4(7,:));
+zz = a4';
+zz = vertcat(zz(:))';
 vars.namesin_updatedinForm_original = cellfun(@(x)shortenName(x),zz,'Uni',0);
 %
 % New Table Names
 %
-vars.names = horzcat(b(1,:),b(2,:),b(3,:),b(4,:),b(5,:),b(6,:),b(7,:));
+zz = b';
+zz = vertcat(zz(:))';
+vars.names = zz;
 %
 % read the text files in each folder to a cell vector (read lineage and
 % expr separate?)
 %
 [v,p,units] = cellfun(@(x) readtxt(filename,x,vars,wd,layers),Markers.lin,'Uni',0);
 [v2,p2,~] = cellfun(@(x) readtxt(filename,x,vars,wd,layers),Markers.expr,'Uni',0);
+%
+% read in tables for multiple segmentation
+%
+idx = find(Markers.nsegs > 1);
+idx_count = 0;
+v3 = {};
+p3 = {};
+%
+if idx
+   for i1 = 1:length(idx)
+        cidx = idx(i1);
+        for i2 = 2:Markers.nsegs(cidx)
+            idx_count = idx_count + 1;
+            x = [Markers.all{cidx},'_',num2str(i2)];
+            [v3{idx_count},p3{idx_count},~] = readtxt(filename,x, vars, wd, layers);
+        end
+   end
+end
 %
 % check that all paths are the same
 %
@@ -690,7 +729,7 @@ p2 = sum(ismember(p2,'\flatw'));
 p2 = length(Markers.all);
 % merge cell vectors
 %
-v = [v,v2];
+v = [v,v2,v3];
 %
 % convert names to something more understandable
 %
@@ -698,7 +737,7 @@ for i4 = 1:length(v)
     v{i4}.Properties.VariableNames = ...
         [{'SampleName','SlideID','fx','fy',...
         'CellID','Phenotype','CellXPos',...
-        'CellYPos','EntireCellArea'},vars.names{:},'Confidence'];
+        'CellYPos','EntireCellArea'},vars.names{:}];
 end
 %
 % get the lineage tables out of v and put them into struct C
@@ -707,11 +746,26 @@ for i3 = 1:length(Markers.lin)
     C.(Markers.lin{i3}) = v{i3};
 end
 %
-% get expr markers out of v and put them into struct C
+% get expr markers out of v and put them into struct C, merging tables for 
+% antibodies with multiple segmentations
 %
+ii = ismember(Markers.all,Markers.expr);
+nsegs = Markers.nsegs(ii);
 i4 = 1;
+i6 = 0;
+%
 for i3 = length(Markers.lin)+1:length(Markers.all)
-    C.(Markers.expr{i4}) = v{i3};
+    if nsegs(i4) > 1
+        tbl = v{i3};
+        for i5 = 2:nsegs(i4)
+            i6 = i6 + 1;
+            v3_count = length(Markers.all) + i6;
+            tbl = [tbl;v{v3_count}];
+        end
+        C.(Markers.expr{i4}) = tbl;
+    else
+        C.(Markers.expr{i4}) = v{i3};
+    end
     i4 = i4+1;
 end
 %
@@ -720,7 +774,6 @@ end
 C.fname = filename;
 %
 end
-
 %% function: readtxt; 
 %% --------------------------------------------------------------
 %% Created by: Benjamin Green - Johns Hopkins - 01/03/2019
@@ -777,19 +830,19 @@ for i1 = [1,5]
     namestry(i1,:) = [{'SampleName','SlideID','fx','fy',...
         'CellID','Phenotype','CellXPosition',...
         'CellYPosition'},areavariable,...
-        vars.namesin{:},'Confidence'];
+        vars.namesin{:}];
     namestry(i1+1,:) = [{'SampleName','SlideID','fx','fy',...
         'CellID','Phenotype','CellXPosition',...
         'CellYPosition'},areavariable,...
-        vars.namesin_original{:},'Confidence'];
+        vars.namesin_original{:}];
     namestry(i1+2,:) =  [{'SampleName','SlideID','fx','fy',...
         'CellID','Phenotype','CellXPosition',...
         'CellYPosition'},areavariable,...
-        vars.namesin_updatedinForm{:},'Confidence'];
+        vars.namesin_updatedinForm{:}];
     namestry(i1+3,:) =  [{'SampleName','SlideID','fx','fy',...
         'CellID','Phenotype','CellXPosition',...
         'CellYPosition'},areavariable,...
-        vars.namesin_updatedinForm_original{:},'Confidence'];
+        vars.namesin_updatedinForm_original{:}];
 end
 %
 fail = 1;
@@ -842,6 +895,8 @@ end
 %%
 function f = getphenofield(C, Markers, units)
 %
+% get the X and Y resolution + image size for unit conversions 
+%
 fold = extractBefore(C.fname.folder,'Phenotyped');
 fold = [fold,'\Component_Tiffs'];
 iname = [fold,'\',extractBefore(C.fname.name,...
@@ -855,6 +910,8 @@ if strcmp(units{1},'pixels')
 elseif strcmp(units{1},'microns')
     scale = 10^4 *(1/imageinfo(1).XResolution);
 end
+%
+% get only the postive cells from each phenotype
 %
 for i3 = 1:length(Markers.all)
     %
@@ -899,10 +956,9 @@ for i3 = 1:length(Markers.all)
     f.(mark1) = dat2;
 end
 %
-ii = strcmpi(C.(Markers.seg{1}).Phenotype, 'Other') | ...
-    strcmpi(C.(Markers.seg{1}).Phenotype, 'Others');
+% create a set of others
 %
-dat2 = C.(Markers.seg{1})(ii,:);
+dat2 = C.(Markers.seg{1});
 %
 if ~isempty(dat2)
     %
@@ -1449,7 +1505,7 @@ for i1 = 1:length(Markers.altseg)
     %
     % get folder and image names for altseg
     %
-    fdname = [extractBefore(p.fname.folder,Markers.seg{1}),...
+    fdname = [extractBefore(p.fname.folder,Markers.all{1}),...
         markalt,'\'];
     iname = [fdname,extractBefore(p.fname.name,'cell_seg_data.txt'),...
         'binary_seg_maps.tif'];
@@ -1555,7 +1611,6 @@ CellID = (1:1:height(p.fig))';
 p.fig.CellID = CellID;
 %
 end
-
 %% function: OrganizeCells; 
 %% --------------------------------------------------------------
 %% Created by: Benjamin Green - Johns Hopkins - 01/03/2019
@@ -1776,7 +1831,8 @@ end
 function o = getexprmark(q,Markers)
 o = q;
 if ~isempty(o.fig)
-    pbv = cell(1,length(Markers.expr));
+    bin = [1,2,4,8,16,32,64,128];
+    ExprPhenotype = zeros(height(o.fig),1);
     for i3 = 1:length(Markers.expr)
         mark = lower(Markers.expr{i3});
         % 
@@ -1793,25 +1849,17 @@ if ~isempty(o.fig)
         % membranes; based on the cell centers distance
         %
         [~,x1] = min(edist(o.fig, o.(mark)(rows,:)),[],1);
-        ii1(x1) = str2double(strip(o.(mark).Confidence(rows),'right','%'));
         xx1(x1) = 1;
         %
         % for cells located only in one cell apply the expression to that cell
         %
-        ii1(x2) = str2double(strip(o.(mark).Confidence(x),'right','%'));
         xx1(x2) = 1;
         %
-        o.fig.(mark) = xx1;
-        pbv{i3} = ii1;
+        ExprPhenotype = ExprPhenotype + (xx1 .* bin(i3));
     end
-    %
-    % add confidence for expression data
-    %
-    for i3 = 1:length(Markers.expr)
-        mark = strcat(lower(Markers.expr{i3}),'probability');
-        o.fig.(mark) = pbv{i3};
-    end
-    o.fig.Confidence = [];
+    o.fig.ExprPhenotype = ExprPhenotype;
+else
+    o.fig.ExprPhenotype = zeros(0); 
 end
 %
 end
@@ -1862,6 +1910,43 @@ end
 %% --------------------------------------------------------------
 %%
 function mktmp = parsave(fData,fname,Markers,wd)
+%
+% first check that there are enough columns to match the 9 color protocol
+%
+if width(fData.fig) < 83
+    vars.Opals = {'DAPI','480','520','540','570','620','650','690','780'};
+    vars.type = [repmat({'Mean'},1,4), repmat({'Total'},1,4)];
+    vars.comp = repmat({'Nucleus', 'Membrane','EntireCell','Cytoplasm'},1,2);
+    %
+    for i3 = 1:length(vars.Opals)
+        %
+        b(:,i3) = cellfun(@(x,y)strcat(y,x,vars.Opals{i3}),...
+            vars.comp,vars.type,'Uni',0);
+        %
+    end
+    %    
+    zz = b';
+    zz = vertcat(zz(:))';
+    vars.names = zz;
+    %
+    w = fData.fig;
+    names_in = w.Properties.VariableNames;
+    names_out = [{'CellID','SampleName','SlideID','fx','fy',...
+        'CellNum','Phenotype','CellXPos',...
+        'CellYPos','EntireCellArea'},vars.names{:},{'ExprPhenotype'}];
+    ii = ~ismember(names_out,names_in);
+    names_add = names_out(ii);
+    vec_add = -1 * ones(height(w), 1); 
+    %
+    for i4 = 1:length(names_add)
+        w.(names_add{i4}) = vec_add;
+    end
+    w = w(:,names_out);
+    fData.fig = w;
+elseif width(fData.fig) > 83
+    disp('Warning: For database upload inForm output should contain ',...
+        'no more than 9 color data');
+end
 %
 % write out whole image csv table
 %
