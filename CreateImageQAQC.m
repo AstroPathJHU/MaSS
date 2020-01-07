@@ -133,7 +133,7 @@ try
         %
         %make overlayed phenotype map and save the data stucture for later
         %
-        ima = mkphenim(s{i2},Markers,mycol{i2},imageid{i2},imc,simage);
+        [s{i2},ima] = mkphenim(s{i2},Markers,mycol{i2},imageid{i2},imc,simage);
         %
         %make moscaics for expression and lineage markers
         %
@@ -227,6 +227,15 @@ elseif sum(ii) > 1
     return
 else
      Markers.Tumor{1} = '';
+end
+ii = strcmp('Immune',B.ImageQA_QC);
+%
+% change Tumor marker designation to 'Tumor'
+%
+if sum(ii) == 1
+    Markers.Immune = Markers.all(ii);
+else
+    Markers.Immune = ' Image QA/QC must have one and only one "Immune" designation';
 end
 %
 % get lineage and expression markers
@@ -751,7 +760,7 @@ end
 %%% make the phenotype images with all the markers
 %% --------------------------------------------------------------
 %%
-function fullimage = mkphenim(q,Markers,mycol,imageid,image,simage)
+function [q,fullimage] = mkphenim(q,Markers,mycol,imageid,image,simage)
 tp2 = q.fig;
 % create composite image
 image = image * (mycol.all * 255);
@@ -950,46 +959,49 @@ r = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5,...
     6, -6, 7, -7, 8, -8, 9, -9, 10, -10];
 marks = [];
 cols = [];
-ii = tp2.ExprPhenotype;
+t2 = tp2.ExprPhenotype;
 %
-bin = [1,2,4,8,16,32,64,128];
-if length(Markers.expr) > 0
-    %
-    for i1 = length(Markers.expr):1
-        %curmark = Markers.expr{i1};
-        curmark = bin(i1);
-        %
-        curcol = mycol.expr(i1,:);
-        %
-        % x and y positions of cells for current phenotype
-        %
-        rows = ii - curmark;
-        ss = rows >= 0;
-        ii = rows * ss;
-        x = tp2(ss,'CellXPos');
-        y = tp2(ss, 'CellYPos');
-        %
-        x1 = table2array(x) + v2;
-        x2 = table2array(x) - v2;
-        %
-        y = table2array(y) - r(i1);
-        %
-        xy = [x1 y x2 y];
-        %
-        % create shape array for those phenotypes
-        %
-        hh = size(xy, 1);
-        marks = [marks;xy];
-        %
-        % create color array for those phenotypes
-        %
-        curcol = uint8(255 * curcol);
-        cols = [cols;repmat(curcol,hh,1)];
-    end
-    %
-    imp = insertShape(imp,'Line',marks,'Color',cols,...
-        'Opacity',1,'SmoothEdges',false);
+% bin = [1,2,4,8,16,32,64,128];
+phenb = [];
+for i1 = 1:length(Markers.expr)
+    t1 =  t2 ./ 2;
+    t2 = floor(t1);
+    t3 = t1 - t2;
+    phenb(:,i1) = t3 ~= 0;
 end
+%
+for i1 = 1:length(Markers.expr)
+    curmark = Markers.expr{i1};
+    %
+    curcol = mycol.expr(i1,:);
+    %
+    % x and y positions of cells for current phenotype
+    %
+    ss = logical(phenb(:,i1));
+    tp2.(lower(curmark)) = ss;
+    x = tp2(ss,'CellXPos');
+    y = tp2(ss, 'CellYPos');
+    %
+    x1 = table2array(x) + v2;
+    x2 = table2array(x) - v2;
+    %
+    y = table2array(y) - r(i1);
+    %
+    xy = [x1 y x2 y];
+    %
+    % create shape array for those phenotypes
+    %
+    hh = size(xy, 1);
+    marks = [marks;xy];
+    %
+    % create color array for those phenotypes
+    %
+    curcol = uint8(255 * curcol);
+    cols = [cols;repmat(curcol,hh,1)];
+end
+%
+imp = insertShape(imp,'Line',marks,'Color',cols,...
+    'Opacity',1,'SmoothEdges',false);
 %
 % rewrite legend over phenotypes
 %
@@ -1025,6 +1037,8 @@ T.setTag(imageid.ds);
 write(T,imp);
 writeDirectory(T)
 close(T)
+%
+q.fig = tp2;
 end
 %%  mkindvphenim
 %% --------------------------------------------------------------
@@ -1041,11 +1055,13 @@ function mkindvphenim(d,mycol,imageid,im,ims, Markers, ima)
 %
 Image.mossize = 50;
 expr.namtypes = Markers.expr;
+%{
 for t = 1:length(Markers.expr)
     m = expr.namtypes{t};
     l = lower(m);
     d.fig.(l) = logical(d.fig.(l));
 end
+%}
 Image.ds = imageid.ds;
 %
 [a, ~] = ismember(Markers.all, expr.namtypes);
@@ -1185,7 +1201,7 @@ for M = 1:length(Image.truemarker)
             % get the locations of the positive cells
             %
             ii = strcmp(d.fig.Phenotype,Image.truemarker{M}) &...
-                d.fig.(l);
+                d.fig.(lower(expr.namtypes{t}));
             %
             data.expr = d.fig(ii,:);
             xy = [data.expr.CellXPos data.expr.CellYPos];
