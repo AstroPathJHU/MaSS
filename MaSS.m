@@ -1831,7 +1831,12 @@ end
 function o = getexprmark(q,Markers)
 o = q;
 if ~isempty(o.fig)
-    bin = [1,2,4,8,16,32,64,128];
+    ii = ismember([480;520;540;570;620;650;690;780],Markers.Opals);
+    bins = [2,4,8,16,32,64,128,256];
+    bins(~ii) = [];
+    ii = ismember(Markers.all,Markers.expr);
+    bins = bins(ii);
+    %
     ExprPhenotype = zeros(height(o.fig),1);
     for i3 = 1:length(Markers.expr)
         mark = lower(Markers.expr{i3});
@@ -1855,7 +1860,7 @@ if ~isempty(o.fig)
         %
         xx1(x2) = 1;
         %
-        ExprPhenotype = ExprPhenotype + (xx1 .* bin(i3));
+        ExprPhenotype = ExprPhenotype + (xx1 .* bins(i3));
     end
     o.fig.ExprPhenotype = ExprPhenotype;
 else
@@ -1942,10 +1947,18 @@ if width(fData.fig) < 83
         w.(names_add{i4}) = vec_add;
     end
     w = w(:,names_out);
+    %
+    % remove NaNs
+    %
+    for N = vars.names
+        temp = num2cell(w.(N{1}));
+        temp(cellfun(@isnan,temp)) = {[]};
+        w.(N{1}) = temp;
+    end
     fData.fig = w;
 elseif width(fData.fig) > 83
     disp('Warning: For database upload inForm output should contain ',...
-        'no more than 9 color data');
+        'no more than 9 color data. Nulls not replaced in tables.');
 end
 %
 % write out whole image csv table
