@@ -953,22 +953,42 @@ imp = insertShape(imp,'FilledPolygon',tmarks,'Color',tcols,...
 imp = insertShape(imp,'FilledPolygon',bmarks,'Color',bcols,...
     'Opacity',.5,'SmoothEdges',false);
 %
-% add expression marker
+% add expression marker line to the phenotype circles; r is offsets 
+% for position of colored line
 %
 r = [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5,...
     6, -6, 7, -7, 8, -8, 9, -9, 10, -10];
 marks = [];
 cols = [];
-t2 = tp2.ExprPhenotype;
 %
-% bin = [1,2,4,8,16,32,64,128];
+% separate the number into binary columns in order of Opals
+%
+% binary numbers = [1,2,4,8,16,32,64,128,256];
+% Opals = [DAPI,480,520,540,570,620,650,690,780];
+%
+total_opals = [480,520,540,570,620,650,690,780]; % Opals without DAPI
+%
+t2 = tp2.ExprPhenotype;
 phenb = [];
-for i1 = 1:length(Markers.expr)
+for i1 = 1:(length(total_opals)+1)
     t1 =  t2 ./ 2;
     t2 = floor(t1);
     t3 = t1 - t2;
     phenb(:,i1) = t3 ~= 0;
 end
+%
+% remove DAPI column
+%
+phenb(:,1) = [];
+%
+% get extract the correct columns from phenb
+%
+ii = ismember(Markers.all,Markers.expr);
+opals = Markers.Opals(ii);
+colms = ismember(total_opals, opals);
+phenb(:,~colms) = [];
+%
+% build the expression marker vectors for each cell
 %
 for i1 = 1:length(Markers.expr)
     curmark = Markers.expr{i1};
@@ -999,6 +1019,8 @@ for i1 = 1:length(Markers.expr)
     curcol = uint8(255 * curcol);
     cols = [cols;repmat(curcol,hh,1)];
 end
+%
+% put the expression marker lines into the image
 %
 imp = insertShape(imp,'Line',marks,'Color',cols,...
     'Opacity',1,'SmoothEdges',false);
