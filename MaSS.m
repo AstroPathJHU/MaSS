@@ -1530,8 +1530,9 @@ end
 %
 %get filenames for 1ry seg images
 %
-iname = [p.fname.folder,'\',extractBefore(p.fname.name,...
-    'cell_seg_data.txt'),'binary_seg_maps.tif'];
+iname = fullfile(p.fname.folder,p.fname.name);
+iname = replace(iname, Markers.all{1}, Markers.seg{1});
+iname = replace(iname, 'cell_seg_data.txt','binary_seg_maps.tif');
 %
 % get cellids of 1ry seg cells
 %
@@ -1563,7 +1564,7 @@ im5 = cell(1,s2);
 % first input all altsegs
 %
 for i1 = 1:length(Markers.altseg)
-    im5(CellID(trows(:,1))) = im3{1};
+    im5(CellID(trows(:,i1))) = im3{i1};
 end
 %
 % next input the 1ry segmentations
