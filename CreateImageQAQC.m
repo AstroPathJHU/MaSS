@@ -57,6 +57,14 @@ end
 %%%  Loop through all images with proper error handling
 %% --------------------------------------------------------------
 %%
+%% imageloop
+%% --------------------------------------------------------------
+%% Created by: Benjamin Green - Johns Hopkins - 01/03/2018
+%% --------------------------------------------------------------
+%% Description
+%%%  Loop through all images with proper error handling
+%% --------------------------------------------------------------
+%%
 function [T,e,tim,str1] = imageloop(wd,uc,BatchIDxls)
 %
 tim = cell(3,1);
@@ -138,6 +146,7 @@ try
         %make moscaics for expression and lineage markers
         %
         mkindvphenim(s{i2},mycol{i2},imageid{i2},imc,simage, Markers, ima);
+        mkexprim(mycol{i2},imageid{i2},imc, Markers, ima)
         %
     end
 catch
@@ -576,7 +585,7 @@ imageid.ds.Software = 'MATLAB';
 imageid.ds.ResolutionUnit = Tiff.ResolutionUnit.Inch;
 imageid.ds.XResolution = 300;
 imageid.ds.YResolution = 300;
-imageid.ds.Compression = Tiff.Compression.None;
+imageid.ds.Compression = Tiff.Compression.LZW;
 %
 % get chart that correspond to inum
 %
@@ -587,6 +596,7 @@ q.fname = charts(inum);
 %
 % some image designations
 %
+imageid.wd = wd;
 imageid.id = extractBefore(q.fname.name,'cleaned_phenotype_table.mat');
 %
 % write out Tables that comes from this image
@@ -630,7 +640,28 @@ end
 %
 for i1 = 1: length(Markers.expr)
     imageid.outABexpr{i1} = [wd,'\Results\QA_QC\Phenotype\',...
-        Markers.expr{i1},'\',imageid.id];
+        Markers.expr{i1},'\',imageid.id];    
+end
+ii = ismember(Markers.all, Markers.expr);
+imageid.exprlayer = Markers.Opals(ii);
+%
+idx = find(Markers.nsegs > 1);
+idx_count = length(imageid.outABexpr);
+%
+if idx
+    for i1 = 1:length(idx)
+        cidx = idx(i1);
+        for i2 = 2:Markers.nsegs(cidx)
+            idx_count = idx_count + 1;
+            str = [wd,'\Results\QA_QC\Phenotype\',...
+                Markers.all{cidx},'_',num2str(i2)];
+            if ~exist(str, 'dir')
+                mkdir(str);
+            end
+            imageid.outABexpr{idx_count} = [str,'\',imageid.id];
+            imageid.exprlayer = [imageid.exprlayer;Markers.Opals(cidx)];
+        end
+    end
 end
 %
 % fname for the component_Tiff image
@@ -1067,38 +1098,15 @@ end
 %% Created by: Benjamin Green - Johns Hopkins - 01/03/2018
 %% --------------------------------------------------------------
 %% Description
-%%% make the individual phenotype images
+%%% This fucntion creates image mosiacs for lineage markers and dual
+%%% expressions with expression markers
 %% --------------------------------------------------------------
 %%
-function mkindvphenim(d,mycol,imageid,im,ims, Markers, ima)
-%%
-%%%%%This function makes mosiacs for each antibody and its pd1/pdl1%%%%%%%%
-%%%%%coexpression%%%%%%%%%%%%%%%%%%%%
+function mkindvphenim(d,mycol,imageid,im,ims, Markers, im_full_color)
 %
-Image.mossize = 50;
-expr.namtypes = Markers.expr;
-%{
-for t = 1:length(Markers.expr)
-    m = expr.namtypes{t};
-    l = lower(m);
-    d.fig.(l) = logical(d.fig.(l));
-end
-%}
-Image.ds = imageid.ds;
+[Image,expr] = getset(Markers,imageid);
 %
-[a, ~] = ismember(Markers.all, expr.namtypes);
-a = find(a) + 1;
-%
-expr.layers = a;
-%
-Image.truemarker = [Markers.lin, Markers.add];
-%
-[a, ~] = ismember(Markers.all, Image.truemarker);
-a = find(a) + 1;
-%
-Image.layer = a;
-%
-%get locations of segmentation
+% get locations of segmentation
 %
 seg = reshape(ims,[],1);
 seg = find(seg > 0);
@@ -1106,115 +1114,60 @@ scol = uint8(255 * .65);
 %
 % add segmentation to full color image
 %
-ima = reshape(ima,[],3);
-ima(seg,:) = repmat([scol 0 0], length(seg),1);
-ima = reshape(ima,[imageid.size,3]);
+im_full_color = reshape(im_full_color,[],3);
+im_full_color(seg,:) = repmat([scol 0 0], length(seg),1);
+im_full_color = reshape(im_full_color,[imageid.size,3]);
 %
-for M = 1:length(Image.truemarker)
+for M = 1:length(Image.all_lineages)
     %
-    %lin image with dapi
+    % lineage image with dapi
     %
-    curmark = Image.truemarker{M};
-    if ismember(curmark, Markers.add)
+    current_marker = Image.all_lineages{M};
+    %
+    % for additional markers, aka dual lineage expression, we need to set
+    % up special image and color vectors. Otherwise just use the specified
+    % layer
+    %
+    if ismember(current_marker, Markers.add)
         %
-        % get top color or highst numeric opal in the coexpression
+        % get the position vectors
         %
-        SW = cellfun(@(x)startsWith(curmark,x),Markers.all,'Uni',0);
-        SW = [SW{:}];
-        SW = find(SW) + 1;
+        [SW, EW] = resolveMultiLin(current_marker, Markers);
         %
-        tcol = mycol.all(SW,:);
+        % get the image columns and color
         %
-        % get bottom color or lowest numeric opal in the coexpression
+        im_lineage_dapi = [im(:,1), im(:,EW), im(:,SW)];
+        cc = [mycol.all(1,:); mycol.all(EW,:);  mycol.all(SW,:)];
         %
-        EW = cellfun(@(x)endsWith(curmark,x), Markers.all,'Uni',0);
-        EW = [EW{:}];
-        EW = find(EW) + 1;
-        %
-        bcol = mycol.all(EW,:);
-        %
-        imla = [im(:,1), im(:,EW), im(:,SW)];
-        cc = [mycol.all(1,:);bcol;tcol];
     else
-        imla =[im(:,1), im(:,Image.layer(M))];
+        %
+        % get the image columns and color
+        %
+        im_lineage_dapi =[im(:,1), im(:,Image.layer(M))];
         cc = [mycol.all(1,:); 1 1 1];
     end
     %
-    imlnda = imla(:,2:end);
-    ccnd = cc(2:end,:);
+    % get the lineage image with and without dapi in color
     %
-    imlnd = 255 * imlnda * ccnd;
-    %
-    iml = 255 * imla * cc;
-    %
-    %add segmentation
-    %
-    imlnd(seg,:) = repmat([scol 0 0], length(seg),1);
-    iml(seg,:) = repmat([scol 0 0], length(seg),1);
-    %
-    imlnd = uint8(imlnd);
-    imlnd = reshape(imlnd,[imageid.size,3]);
-    %
-    iml = uint8(iml);
-    iml = reshape(iml,[imageid.size,3]);
+    [im_lineage_dapi_color, im_lineage_nodapi_color] = ...
+        prepimages(im_lineage_dapi, cc, imageid.size, scol, seg);
     %
     % get the locations of the positive cells
     %
-    ii = strcmp(d.fig.Phenotype,Image.truemarker{M});
+    ii = strcmp(d.fig.Phenotype,Image.all_lineages{M});
+    data.ii = ii;
     data.pos = d.fig(ii,:);
     x = data.pos.CellXPos;
     y = data.pos.CellYPos;
     xy = [x y];
+    data.xy = xy;
     %
     if height(data.pos) > 1
         %
-        % create single color image for single phenotyped image with dapi
+        % create single color image for phenotyped image with dapi
         %
-        Image.image = insertMarker(iml,xy,'+','color','white','size',1);
-        iname = [imageid.outABlin{M},'single_color_expression_image.tif'];
-        %
-        % print image
-        %
-        T = Tiff(iname,'w');
-        T.setTag(imageid.ds);
-        write(T,Image.image);
-        writeDirectory(T)
-        close(T)
-        %
-        % create full color image for single phenotyped image with dapi
-        %
-        imp = insertMarker(ima,xy,'+','color','white','size',1);
-        iname = [imageid.outABlin{M},'full_color_expression_image.tif'];
-        %
-        % print image
-        %
-        T = Tiff(iname,'w');
-        T.setTag(imageid.ds);
-        write(T,imp);
-        writeDirectory(T)
-        close(T)
-        %
-        data.neg = d.fig(~ii,:);
-        if height(data.pos) <= 25 && height(data.neg) > 25
-            data.neg =  datasample(data.neg,25,1,'Replace',false);
-        elseif height(data.pos)>25 && height(data.neg)>25
-            data.pos = datasample(data.pos,25,1,'Replace',false);
-            data.neg =  datasample(data.neg,25,1,'Replace',false);
-        end
-        %
-        % Create the Image Mosiacs for local positive images
-        %
-        data.mos = cat(1,data.pos,data.neg);
-        Image.x = data.mos.CellXPos;
-        Image.y = data.mos.CellYPos;
-        Image.imname = [imageid.outABlin{M},'cell_stamp_mosiacs_pos_neg.tif'];
-        makemosaics(Image)
-        %
-        % Create the Image Mosiacs for local positive images without dapi
-        %
-        Image.image = insertMarker(imlnd,xy,'+','color','white','size',1);
-        Image.imname = [imageid.outABlin{M},'cell_stamp_mosiacs_pos_neg_no_dapi.tif'];
-        makemosaics(Image)
+        create_color_images(im_lineage_dapi_color, imageid.outABlin{M},...
+            Image,im_full_color,data, d.fig, im_lineage_nodapi_color)
         %
         % make images for expression marker & lineage coexpression
         %
@@ -1222,170 +1175,181 @@ for M = 1:length(Image.truemarker)
             %
             % get the locations of the positive cells
             %
-            ii = strcmp(d.fig.Phenotype,Image.truemarker{M}) &...
+            ii = strcmp(d.fig.Phenotype,Image.all_lineages{M}) &...
                 d.fig.(lower(expr.namtypes{t}));
+            data.ii = ii;
+            data.pos = d.fig(ii,:);
+            xy = [data.pos.CellXPos data.pos.CellYPos];
+            data.xy = xy;
             %
-            data.expr = d.fig(ii,:);
-            xy = [data.expr.CellXPos data.expr.CellYPos];
-            %
-            % put image together fused for expr lin, dapi, segmentation
-            %
-            ly = expr.layers(t);
-            ime = im(:,ly);
-            %
-            imel = [imla,ime];
-            imel = 255 * imel * [cc; mycol.all(ly,:)];
-            %
-            imelnd = [imlnda,ime];
-            imelnd = 255 * imelnd * [ccnd; mycol.all(ly,:)];
-            %
-            imel(seg,:) =repmat([scol 0 0], length(seg),1);
-            imel = reshape(imel,[imageid.size,3]);
-            imel = uint8(imel);
-            %
-            imelnd(seg,:) =repmat([scol 0 0], length(seg),1);
-            imelnd = reshape(imelnd,[imageid.size,3]);
-            imelnd = uint8(imelnd);
-            %
-            % create single color image for dual phenotyped image with dapi
-            %
-            Image.image = insertMarker(imel,xy, '+','color','white','size',1);
-            iname = [imageid.outABcoex{M},'single_color_expression_image.tif'];
-            %
-            % print image
-            %
-            T = Tiff(iname,'w');
-            T.setTag(imageid.ds);
-            write(T,Image.image);
-            writeDirectory(T)
-            close(T)
-            %
-            % create full color image for dual phenotyped image with dapi
-            %
-            imp = insertMarker(ima,xy, '+','color','white','size',1);
-            iname = [imageid.outABcoex{M},'full_color_expression_image.tif'];
-            %
-            % print image
-            %
-            T = Tiff(iname,'w');
-            T.setTag(imageid.ds);
-            write(T,imp);
-            writeDirectory(T)
-            close(T)
-            %
-            if height(data.expr) > 1 && height(data.expr) > 25
-                data.expr = datasample(data.expr,25,1,'Replace',false);
+            if height(data.pos) > 1
+                %
+                % put image together for expr lin, dapi, segmentation
+                %
+                ly = expr.layers(t);
+                ime = im(:,ly);
+                imel = [im_lineage_dapi,ime];
+                cc1 = [cc; mycol.all(ly,:)];
+                %
+                [imel, imelnd] = ...
+                    prepimages(imel, cc1, imageid.size, scol, seg);
+                %
+                create_color_images(imel, [imageid.outABcoex{M},...
+                    expr.namtypes{t}], Image,im_full_color,data, d.fig, imelnd);
             end
-            %
-            % Create the Image Mosiacs for local positive images
-            %
-            Image.x = data.expr.CellXPos;
-            Image.y = data.expr.CellYPos;
-            Image.imname = [imageid.outABcoex{M},...
-                expr.namtypes{t},'_cell_stamp_mosiacs_pos_neg.tif'];
-            makemosaics(Image)
-            %
-            % Create Image Mosiacs for local positive images no dapi
-            %
-            Image.image = insertMarker(imelnd,xy, '+','color','white','size',1);
-            Image.iname = [imageid.outABcoex{M},...
-                expr.namtypes{t},'_cell_stamp_mosiacs_pos_neg_no_dapi.tif'];
-            makemosaics(Image)
         end
     end
 end
 %
-% make images for expression marker alone
 %
-
-for t = 1:length(expr.namtypes)
-    %
-    % put image together fused for expr, dapi, segmentation
-    %
-    ly = expr.layers(t);
-    %
-    ime = [im(:,1),im(:,ly)];
-    cc = [mycol.all(1,:); 1 1 1];
-    ime = ime * cc * 255;
-    %
-    imend = im(:,ly);
-    ccnd = [1 1 1];
-    imend = imend * ccnd * 255;
-    %
-    ime(seg,:) = repmat([scol 0 0], length(seg),1);
-    ime = reshape(ime,[imageid.size,3]);
-    ime = uint8(ime);
-    %
-    imend(seg,:) = repmat([scol 0 0], length(seg),1);
-    imend = reshape(imend,[imageid.size,3]);
-    imend = uint8(imend);
-    %
-    % get the positive cells
-    %
-    m = expr.namtypes{t};
-    l = lower(m);
-    ii = d.fig.(l);
-    data.pos = d.fig(ii,:);
-    data.neg = d.fig(~ii,:);
-    x = data.pos.CellXPos;
-    y = data.pos.CellYPos;
-    xy = [x y];
-    %
-    if height(data.pos) > 1
-        %
-        % create single color image for single phenotyped image with dapi
-        %
-        Image.image = insertMarker(ime,xy,'+','color','white','size',1);
-        iname = [imageid.outABexpr{t},'single_color_expression_image.tif'];
-        %
-        % print image
-        %
-        T = Tiff(iname,'w');
-        T.setTag(imageid.ds);
-        write(T,Image.image);
-        writeDirectory(T)
-        close(T)
-        %
-        % create full color image for single phenotyped image with dapi
-        %
-        imp = insertMarker(ima,xy,'+','color','white','size',1);
-        iname = [imageid.outABexpr{t},'full_color_expression_image.tif'];
-        %
-        % print image
-        %
-        T = Tiff(iname,'w');
-        T.setTag(imageid.ds);
-        write(T,imp);
-        writeDirectory(T)
-        close(T)
-        %
-        if height(data.pos) <= 25
-            data.neg =  datasample(data.neg,25,1,'Replace',false);
-        elseif height(data.pos) > 25
-            data.pos = datasample(data.pos,25,1,'Replace',false);
-            if height(data.neg) > 25
-                data.neg =  datasample(data.neg,25,1,'Replace',false);
-            end
-        end
-        %
-        % Create the Image Mosiacs for local positive images
-        %
-        data.mos = cat(1,data.pos,data.neg);
-        Image.x = data.mos.CellXPos;
-        Image.y = data.mos.CellYPos;
-        Image.imname = [imageid.outABexpr{t},'cell_stamp_mosiacs_pos_neg.tif'];
-        makemosaics(Image)
-        %
-        % Create the no dapi Image Mosiacs for local positive images
-        %
-        Image.image = insertMarker(imend,xy,'+','color','white','size',1);
-        Image.imname = [imageid.outABexpr{t},'cell_stamp_mosiacs_pos_neg_no_dapi.tif'];
-        makemosaics(Image)
-    end
 end
-
-
-
+%% getset
+%% Created by: Benjamin Green
+%% ---------------------------------------------
+%% Description
+% initialize the variables for the mkindvphenim funtion
+%% ---------------------------------------------
+%%
+function [Image,expr] = getset(Markers,imageid)
+%
+Image.mossize = 50;
+expr.namtypes = Markers.expr;
+%
+Image.ds = imageid.ds;
+%
+[a, ~] = ismember(Markers.all, expr.namtypes);
+a = find(a) + 1;
+%
+expr.layers = a;
+%
+Image.all_lineages = [Markers.lin, Markers.add];
+%
+[a, ~] = ismember(Markers.all, Image.all_lineages);
+a = find(a) + 1;
+%
+Image.layer = a;
+end
+%% resolveMultiLin
+%% Created by: Benjamin Green
+%% ---------------------------------------------
+%% Description
+% determine the position vectors for multiple lineage
+% coexpression
+%% ---------------------------------------------
+%%
+function [SW, EW] = resolveMultiLin(current_marker, Markers)
+%
+% get top color or highest numeric opal in the coexpression
+%
+SW = cellfun(@(x)startsWith(current_marker,x),Markers.all,'Uni',0);
+SW = [SW{:}];
+SW = find(SW) + 1;
+%
+% get bottom color or lowest numeric opal in the coexpression
+%
+EW = cellfun(@(x)endsWith(current_marker,x), Markers.all,'Uni',0);
+EW = [EW{:}];
+EW = find(EW) + 1;
+%
+end
+%% prepimages
+%% Created by: Benjamin Green
+%% ---------------------------------------------
+%% Description
+% prepare the images by multiplying by the corresponding color vectors and
+% adding the segmentation.
+%% Input
+% im = image column vector where the first column is dapi
+% c_map = color matrix for the corresponding image
+% im_size = [h w] of the returned image
+% scol = the shade of red for the segmentation map
+% seg = the segmentation column vector
+%% Ouput
+% im_dapi = color image in matrix format with segmentation; with dapi
+% im_nodapi = color image in matrix format with segmentation; no dapi
+%% ---------------------------------------------
+%%
+function [im_dapi, im_nodapi] = prepimages(im, c_map, im_size, scol, seg)
+%
+% create dapi images first
+%
+im_dapi = 180 * sinh(1.5 * im) * c_map;
+im_dapi(seg,:) = repmat([scol 0 0], length(seg),1);
+im_dapi = uint8(im_dapi);
+im_dapi = reshape(im_dapi,[im_size, 3]);
+%
+% create no dapi images next
+%
+im = im(:,2:end);
+c_map = c_map(2:end,:);
+im_nodapi = 180 * sinh(1.5 * im) * c_map;
+im_nodapi(seg,:) = repmat([scol 0 0], length(seg),1);
+im_nodapi = uint8(im_nodapi);
+im_nodapi = reshape(im_nodapi,[im_size, 3]);
+%
+end
+%% create_color_images
+%% Created by: Benjamin Green
+%% ---------------------------------------------
+%% Description
+% create 4 images for each input; single expression images for markers
+% showing only positive colors, single expression images for markers
+% showing all colors, image mosiacs for single expression images showing up
+% to 25 + and 25 - cells -- both with and without DAPI
+%% ---------------------------------------------
+%%
+function create_color_images(im, imageidout, Image,...
+    im_full_color,data, d, im_nodapi)
+%
+Image.image = insertMarker(im,data.xy,'+','color','white','size',1);
+iname = [imageidout,'single_color_expression_image.tif'];
+write_image(iname,Image.image,Image)
+%
+% create full color image for phenotyped image with dapi
+%
+imp = insertMarker(im_full_color,data.xy,'+','color','white','size',1);
+iname = [imageidout,'full_color_expression_image.tif'];
+write_image(iname,imp,Image)
+%
+% get the data sample
+%
+data.neg = d(~data.ii,:);
+if height(data.neg) > 25
+    data.neg =  datasample(data.neg,25,1,'Replace',false);
+end
+if height(data.pos) > 25 
+    data.pos = datasample(data.pos,25,1,'Replace',false);
+end
+%
+% Create the Image Mosiacs for local positive images with dapi
+%
+data.mos = cat(1,data.pos,data.neg);
+Image.x = data.mos.CellXPos;
+Image.y = data.mos.CellYPos;
+Image.imname = [imageidout,'cell_stamp_mosiacs_pos_neg.tif'];
+makemosaics(Image)
+%
+% Create the Image Mosiacs for local positive images without dapi
+%
+Image.image = insertMarker(im_nodapi,data.xy,'+','color','white','size',1);
+Image.imname = [imageidout,'cell_stamp_mosiacs_pos_neg_no_dapi.tif'];
+makemosaics(Image)
+%
+end
+%% write_image
+%% Created by: Benjamin Green
+%% ---------------------------------------------
+%% Description
+% write out the image 'Image' to the file iname using the Tiff library
+%% ---------------------------------------------
+%
+%%
+function write_image(iname,im,Image)
+T = Tiff(iname,'w');
+T.setTag(Image.ds);
+write(T,im);
+writeDirectory(T)
+close(T)
 end
 %% makemosaics
 %% --------------------------------------------------------------
@@ -1459,6 +1423,194 @@ if ~isempty(Image.x)
     writeDirectory(T)
     close(T)
 end
+end
+
+%%  mkexprim
+%% --------------------------------------------------------------
+%% Created by: Benjamin Green - Johns Hopkins - 01/03/2018
+%% --------------------------------------------------------------
+%% Description
+%%% This fucntion creates image mosiacs for expression markers
+%% --------------------------------------------------------------
+%%
+function mkexprim(mycol,imageid,im, Markers, im_full_color)
+%
+[Image,~] = getset(Markers,imageid);
+%
+% get the segmentations for each expression variable, including dual 
+% segmentations 
+%
+[ims, expr, d2] = getSegMaps(imageid, Markers);
+%
+for t = 1:length(expr.namtypes)
+    %
+    % put image together fused for expr, dapi, segmentation
+    %
+    ly = expr.layer(t);
+    %
+    ime = [im(:,1),im(:,ly)];
+    cc = [mycol.all(1,:); 1 1 1];
+    %
+    seg = ims(:,t);
+    seg = find(seg > 0);
+    scol = uint8(255 * .65);
+    % ---------------------------------------------------------------------
+    % need to recreate segmentation vectors based on Markers.nsegs %%%%%%%
+    % ---------------------------------------------------------------------
+
+    [ime, imend] = ...
+        prepimages(ime, cc, imageid.size, scol, seg);
+    %
+    % get the positive cells
+    %
+    ii = d2{t}.ExprPhenotype;
+    %
+    % set up struct
+    %
+    data.ii = ii;
+    data.pos = d2{t}(ii,:);
+    x = data.pos.CellXPos;
+    y = data.pos.CellYPos;
+    xy = [x y];
+    data.xy = xy;
+    %
+    if height(data.pos) > 1
+        %
+        create_color_images(ime, imageid.outABexpr{t},...
+            Image,im_full_color, data, d2{t}, imend);
+        %
+    end
+end
+end
+%%  getSegMaps
+%% --------------------------------------------------------------
+%% Created by: Benjamin Green - Johns Hopkins - 01/03/2018
+%% --------------------------------------------------------------
+%% Description
+% This fucntion gets the segmentation maps for each expr variable
+% including multiple segmentations. Returns a column vector with binary
+% segmentation, a data struct with two fields (nametypes and layer), and
+% modifies the outABexpr class of imageid. Also modifies the expression
+% marker columns of the d.fig table to separate multiple segmentations.
+%% Output
+% ims = a column vector where each column is the binary map for the
+% segmentation
+% expr.namtypes = cell array of expression markers including additional
+% segmentations for multiple segmentations on the same AB
+% expr.layer = numeric array for the layer in the compenet tiff of each
+% segmentation
+% imageid.outABexpr = cell array of destination paths for the images
+% d.fig = columns for multiple segmentations divided into parts
+%% --------------------------------------------------------------
+%%
+function [ims, expr, d2] = getSegMaps(imageid, Markers)
+%
+% get antibody folder names
+%
+AB_fdnames = cellfun(@(x)extractBetween(x,'Phenotype\',['\',imageid.id]),...
+    imageid.outABexpr,'Uni',0);
+AB_fdnames = [AB_fdnames{:}];
+expr.namtypes = AB_fdnames;
+expr.layer = imageid.exprlayer;
+%
+% get the cell x and y positions from each segmentation map
+%
+seg_types = [Markers.seg,Markers.altseg];
+layers = length(Markers.Opals) + 2;
+filnm = [imageid.id,'cell_seg_data'];
+%
+xy_seg = cellfun(@(x) get_pheno_xy(filnm,x,imageid.wd,layers),seg_types,'Uni',0);
+xy_expr = cellfun(@(x) get_pheno_xy(filnm,x,imageid.wd,layers),AB_fdnames,'Uni',0);
+d2 = xy_expr;
+%
+% convert to subscripts so we can perform matrix comparisons
+%
+loc_seg = cellfun(@(x) sub2ind(imageid.size,...
+    x.CellYPosition,x.CellXPosition), xy_seg,'Uni',0);
+num_seg = cellfun('length',loc_seg);
+%
+loc_expr = cellfun(@(x) sub2ind(imageid.size,...
+    x.CellYPosition,x.CellXPosition), xy_expr,'Uni',0);
+num_expr = cellfun('length',loc_expr);
+%
+% for each expression marker see which segmentation map it fits in
+%
+ims = zeros(imageid.size(1) * imageid.size(2),length(xy_expr));
+%
+for i1 = 1:length(xy_expr)
+    %
+    % find segmentations that have the same number of cells
+    %
+    idx = find(num_expr(i1) == num_seg); 
+    %
+    % if more than one segmentation type has the same number of cells
+    % compare positions to determine current segmenation map
+    %
+    if length(idx) > 1
+        for i2 = 1:length(idx)
+            val = loc_expr{i1} == loc_seg{idx(i2)};
+            if sum(val) == length(loc_expr{i1})
+                c_seg = seg_types{idx(i2)};
+                break
+            end
+        end
+    else
+        c_seg = seg_types{idx};
+    end
+    %
+    % read in that segmentation map and convert it to a column vector
+    %
+    folds = [imageid.wd,'\',c_seg];
+    im_name = [imageid.id,'binary_seg_maps.tif'];
+    im_full = fullfile(folds,im_name);
+    %
+    seg_im = imread(im_full,4);
+    ims(:,i1) = reshape(seg_im,[],1);
+    %
+    % make binary columns for d2
+    %
+    ii = expr.layer(i1) == Markers.Opals;
+    AB = Markers.all(ii);
+    expr.layer(i1) = find(ii) + 1;
+    d2{i1}.ExprPhenotype = strcmp(d2{i1}.Phenotype, AB);
+    d2{i1}.CellXPos = d2{i1}.CellXPosition;
+    d2{i1}.CellYPos = d2{i1}.CellYPosition;
+end
+%          
+end
+%% get_pheno_xy
+%% Created by: Benjamin Green
+%% ---------------------------------------------------------
+%% Description 
+% get the xy positions of each cell for a given phenotype marker
+%% ---------------------------------------------------------
+%%
+function [xy] = get_pheno_xy(filnm,marker,wd,layers)
+%%-----------------------------------------------------------
+%% load the csv file with the given marker and extract xy positions of each
+%% cell
+%%-----------------------------------------------------------
+%
+% read in table
+%
+warning('off','MATLAB:table:ModifiedAndSavedVarnames')
+%
+% create format specifier for each column in the table
+%
+formatspec = strcat(repmat('%s ',[1,4]),{' '},repmat('%f32 ',[1,11]),...
+    { ' %s '},repmat('%f32 ',[1,5]),{' '},repmat('%f32 ',[1,5*layers]),...
+    { ' %s '},repmat('%f32 ',[1,5]),{' '},repmat('%f32 ',[1,5*layers]),...
+    { ' %s '},repmat('%f32 ',[1,5]),{' '},repmat('%f32 ',[1,5*layers]),...
+     { ' %s '},repmat('%f32 ',[1,4]),{' '},repmat('%f32 ',[1,5*layers]),...
+    {' '},repmat('%s ',[1,2]),{' '}, repmat('%f32 ',[1,4]),{' '}, ....
+    repmat('%s ',[1,2]));
+formatspec = formatspec{1};
+%
+T = readtable([wd,'\',marker,'\',filnm],'Format',formatspec,...
+    'Delimiter','\t','TreatAsEmpty',{' ','#N/A'});
+%
+xy = T(:,{'CellID','CellXPosition','CellYPosition','Phenotype'});
+%
 end
 %% mkfigs
 %% --------------------------------------------------------------
