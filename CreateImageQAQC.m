@@ -1608,8 +1608,54 @@ formatspec = formatspec{1};
 %
 T = readtable([wd,'\',marker,'\',filnm],'Format',formatspec,...
     'Delimiter','\t','TreatAsEmpty',{' ','#N/A'});
+vars = T.Properties.VariableNames;
+ii = find(contains(vars,'micron'));
+if ii
+    units{1} = 'microns';
+else
+    units{1} = 'pixels';
+end
+%
+filnm2 = extractBetween(filnm,'[',']');
+filnm2 = strsplit(filnm2{1},',');
+fx = str2double(filnm2{1});
+fy = str2double(filnm2{2});
+%
+fold = extractBefore(wd,'Phenotyped');
+fold = [fold,'Component_Tiffs'];
+iname = [fold,'\',replace(filnm,...
+    'cell_seg_data','component_data.tif')];
+imageinfo = imfinfo(iname);
+W = imageinfo.Width;
+H = imageinfo.Height;
+scalea = 10^4 *(1/imageinfo(1).XResolution);
+if strcmp(units{1},'pixels')
+    scale = 1;
+elseif strcmp(units{1},'microns')
+    scale = 10^4 *(1/imageinfo(1).XResolution);
+end
 %
 xy = T(:,{'CellID','CellXPosition','CellYPosition','Phenotype'});
+%
+if strcmp(units{1},'microns')
+    fx = (fx - scalea*(W/2)); %microns
+    fy = (fy - scalea*(H/2)); %microns
+elseif strcmp(units{1},'pixels')
+    fx = (1/scalea .* fx - (W/2)); %pixels
+    fy = (1/scalea .* fy - (H/2)); %pixles
+end
+%
+xy.CellXPosition = 1/scale .* (xy.CellXPosition - fx);
+xy.CellYPosition = 1/scale .* (xy.CellYPosition - fy);
+%
+xy.CellXPosition = round(xy.CellXPosition);
+xy.CellYPosition = round(xy.CellYPosition);
+%
+ii = xy.CellXPosition < 1;
+xy.CellXPosition(ii) = 1;
+%
+ii = xy.CellYPosition < 1;
+xy.CellYPosition(ii) = 1;
 %
 end
 %% mkfigs

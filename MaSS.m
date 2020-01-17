@@ -898,7 +898,7 @@ function f = getphenofield(C, Markers, units)
 % get the X and Y resolution + image size for unit conversions 
 %
 fold = extractBefore(C.fname.folder,'Phenotyped');
-fold = [fold,'\Component_Tiffs'];
+fold = [fold,'Component_Tiffs'];
 iname = [fold,'\',extractBefore(C.fname.name,...
     'cell_seg_data.txt'),'component_data.tif'];
 imageinfo = imfinfo(iname);
