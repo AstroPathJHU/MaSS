@@ -1585,7 +1585,7 @@ end
 % get the xy positions of each cell for a given phenotype marker
 %% ---------------------------------------------------------
 %%
-function [xy] = get_pheno_xy(filnm,marker,wd,layers)
+function [xy] = get_pheno_xy(filnm,marker,wd1,layers)
 %%-----------------------------------------------------------
 %% load the csv file with the given marker and extract xy positions of each
 %% cell
@@ -1606,7 +1606,7 @@ formatspec = strcat(repmat('%s ',[1,4]),{' '},repmat('%f32 ',[1,11]),...
     repmat('%s ',[1,2]));
 formatspec = formatspec{1};
 %
-T = readtable([wd,'\',marker,'\',filnm],'Format',formatspec,...
+T = readtable([wd1,'\',marker,'\',filnm],'Format',formatspec,...
     'Delimiter','\t','TreatAsEmpty',{' ','#N/A'});
 vars = T.Properties.VariableNames;
 ii = find(contains(vars,'micron'));
@@ -1621,7 +1621,7 @@ filnm2 = strsplit(filnm2{1},',');
 fx = str2double(filnm2{1});
 fy = str2double(filnm2{2});
 %
-fold = extractBefore(wd,'Phenotyped');
+fold = extractBefore(wd1,'Phenotyped');
 fold = [fold,'Component_Tiffs'];
 iname = [fold,'\',replace(filnm,...
     'cell_seg_data','component_data.tif')];
@@ -1645,17 +1645,20 @@ elseif strcmp(units{1},'pixels')
     fy = (1/scalea .* fy - (H/2)); %pixles
 end
 %
-xy.CellXPosition = 1/scale .* (xy.CellXPosition - fx);
-xy.CellYPosition = 1/scale .* (xy.CellYPosition - fy);
-%
-xy.CellXPosition = round(xy.CellXPosition);
-xy.CellYPosition = round(xy.CellYPosition);
-%
-ii = xy.CellXPosition < 1;
-xy.CellXPosition(ii) = 1;
-%
-ii = xy.CellYPosition < 1;
-xy.CellYPosition(ii) = 1;
+if find(xy.CellXPosition > W)
+    %
+    xy.CellXPosition = 1/scale .* (xy.CellXPosition - fx);
+    xy.CellYPosition = 1/scale .* (xy.CellYPosition - fy);
+    %
+    xy.CellXPosition = round(xy.CellXPosition);
+    xy.CellYPosition = round(xy.CellYPosition);
+    %
+    ii = xy.CellXPosition < 1;
+    xy.CellXPosition(ii) = 1;
+    %
+    ii = xy.CellYPosition < 1;
+    xy.CellYPosition(ii) = 1;
+end
 %
 end
 %% mkfigs
