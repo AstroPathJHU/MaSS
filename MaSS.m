@@ -45,17 +45,17 @@
 %% Usage:
 % wd = 'W:\Clincial_Specimen\M1_1\inform_data\Phenotyped'
 % sname = 'M1_1'
-% BatchIDxls = 'W:\Clincial_Specimen\BatchID\BatchID_01.xlsx'
+% MergeConfig = 'W:\Clincial_Specimen\BatchID\BatchID_01.xlsx'
 %% output:
 % *\inform_data\Results\Tables\*_cleaned_phenotyped_table.csv files 
 % *\inform_data\Results\tmp_ForFiguresTables\* _cleaned_phenotyped_table.mat files 
 %% --------------------------------------------------------
 %%
-function [] = MaSS(wd,sname,BatchIDxls)
+function [] = MaSS(wd,sname,MergeConfig)
 %
 % run the file loop for the sample
 %
-[errors,errors2,tim,Markers] = fileloop(wd,sname,BatchIDxls);
+[errors,errors2,tim,Markers] = fileloop(wd,sname,MergeConfig);
 %
 % create a error log file for the sample
 %
@@ -71,7 +71,7 @@ end
 % handling
 %% --------------------------------------------------------
 %%
-function [errors, errors2,tim,Markers] = fileloop(wd,sname,BatchIDxls)
+function [errors, errors2,tim,Markers] = fileloop(wd,sname,MergeConfig)
 %
 tim = cell(4,1);
 %
@@ -85,7 +85,7 @@ Markers = [];
 % get Markers structure
 %
 try
-    Markers = createmarks(BatchIDxls);
+    Markers = createmarks(MergeConfig);
 catch
     errors2 = ['Error in ',sname, ': check Batch ID files.'];
     disp(errors2);
@@ -184,12 +184,12 @@ end
 % structure
 %% --------------------------------------------------------
 %%
-function[Markers] = createmarks(BatchIDxls)
+function[Markers] = createmarks(MergeConfig)
 %
 warning('off','MATLAB:table:ModifiedAndSavedVarnames')
 %
 try
-    BIDtbl = readtable(BatchIDxls);
+    BIDtbl = readtable(MergeConfig);
     B = BIDtbl(:,{'Opal','Target',...
     'TargetType','CoexpressionStatus','SegmentationStatus',...
     'SegmentationHierarchy', 'ImageQA_QC', 'NumberofSegmentations'});
@@ -234,9 +234,11 @@ Markers.expr = Markers.all(ET);
 % capability on expression markers
 %
 nsegs = B.NumberofSegmentations;
-nsegs = cellfun(@(x) str2double(x), nsegs, 'Uni',0);
-nsegs = cell2mat(nsegs);
-if find(nsegs(~ET) ~= 1)
+if iscell(nsegs)
+    nsegs = cellfun(@(x) str2double(x), nsegs, 'Uni',0);
+    nsegs = cell2mat(nsegs);
+end
+if find(nsegs(~ET) > 1)
      Markers.nsegs =  [' MaSS can only handle expression markers',...
          ' with multiple segmentations'];
     return
@@ -247,8 +249,10 @@ Markers.nsegs = nsegs;
 % the primary segmentation
 %
 SS = B.SegmentationStatus;
-SS = cell2mat(SS);
-SS = str2num(SS);
+if iscell(SS)
+    SS = cell2mat(SS);
+    SS = str2num(SS);
+end
 SS = SS(nsegs == 1);
 mn = Markers.all(nsegs == 1);
 %
@@ -279,6 +283,9 @@ TCS = Markers.lin(ii);
 % get segmentation heirarchy
 %
 SH = B.SegmentationHierarchy;
+if ~iscell(SH)
+    SH = num2cell(SH);
+end
 Markers.SegHie = SH(LT);
 %
 % CS that is not NA in lineage markers; find which coexpressions are
@@ -898,7 +905,7 @@ function f = getphenofield(C, Markers, units)
 % get the X and Y resolution + image size for unit conversions 
 %
 fold = extractBefore(C.fname.folder,'Phenotyped');
-fold = [fold,'Component_Tiffs'];
+fold = [fold,'\Component_Tiffs'];
 iname = [fold,'\',extractBefore(C.fname.name,...
     'cell_seg_data.txt'),'component_data.tif'];
 imageinfo = imfinfo(iname);
