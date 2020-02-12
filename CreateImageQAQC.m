@@ -259,8 +259,10 @@ Markers.expr = Markers.all(ET);
 % capability on expression markers
 %
 nsegs = B.NumberofSegmentations;
-nsegs = cellfun(@(x) str2double(x), nsegs, 'Uni',0);
-nsegs = cell2mat(nsegs);
+if iscell(nsegs)
+    nsegs = cellfun(@(x) str2double(x), nsegs, 'Uni',0);
+    nsegs = cell2mat(nsegs);
+end
 if find(nsegs(~ET) ~= 1)
      Markers.nsegs =  [' MaSS can only handle expression markers',...
          ' with multiple segmentations'];
@@ -272,8 +274,10 @@ Markers.nsegs = nsegs;
 % the primary segmentation
 %
 SS = B.SegmentationStatus;
-SS = cell2mat(SS);
-SS = str2num(SS);
+if iscell(SS)
+    SS = cell2mat(SS);
+    SS = str2num(SS);
+end
 SS = SS(nsegs == 1);
 mn = Markers.all(nsegs == 1);
 %
@@ -304,6 +308,9 @@ TCS = Markers.lin(ii);
 % get segmentation heirarchy
 %
 SH = B.SegmentationHierarchy;
+if ~iscell(SH)
+    SH = num2cell(SH);
+end
 Markers.SegHie = SH(LT);
 %
 % CS that is not NA in lineage markers; find which coexpressions are
@@ -382,6 +389,7 @@ Markers.seg = Markers.seg';
 Markers.altseg = Markers.altseg';
 Markers.SegHie = Markers.SegHie';
 end
+
 %% mkpaths
 %% --------------------------------------------------------------
 %% Created by: Benjamin Green - Johns Hopkins - 01/03/2018
