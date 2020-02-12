@@ -6,11 +6,11 @@
 %%% Create QC/QA Images for top 20 CD8 density fields of a case
 %% --------------------------------------------------------------
 %%
-function [T] = CreateImageQAQC(wd,uc,BatchIDxls)
+function [T] = CreateImageQAQC(wd,uc,MergeConfig)
 %
 % run image loop for sname in uc
 %
-[T,e,tim,str1] = imageloop(wd,uc,BatchIDxls);
+[T,e,tim,str1] = imageloop(wd,uc,MergeConfig);
 %
 % create a logfile
 %
@@ -65,7 +65,7 @@ end
 %%%  Loop through all images with proper error handling
 %% --------------------------------------------------------------
 %%
-function [T,e,tim,str1] = imageloop(wd,uc,BatchIDxls)
+function [T,e,tim,str1] = imageloop(wd,uc,MergeConfig)
 %
 tim = cell(3,1);
 tim{1} = datestr(now,'dd-mmm-yyyy HH:MM:SS');
@@ -74,7 +74,7 @@ str1 = cell(2,1);
 T = [];
 %
 try
-    Markers = createmarks(BatchIDxls);
+    Markers = createmarks(MergeConfig);
 catch
     e{1} = ['Error in: ',uc, ' check Batch ID files.'];
     disp(e{1});
@@ -200,12 +200,12 @@ end
 %%% structure
 %% --------------------------------------------------------------
 %%
-function[Markers] = createmarks(BatchIDxls)
+function[Markers] = createmarks(MergeConfig)
 %
 warning('off','MATLAB:table:ModifiedAndSavedVarnames')
 %
 try
-    BIDtbl = readtable(BatchIDxls);
+    BIDtbl = readtable(MergeConfig);
     B = BIDtbl(:,{'Opal','Target',...
     'TargetType','CoexpressionStatus','SegmentationStatus',...
     'SegmentationHierarchy', 'ImageQA_QC', 'NumberofSegmentations'});
@@ -430,6 +430,8 @@ for z = 1:length(Markers.add)
     mkdir(m{2}, Markers.add{z})
 end
 %
+layers = length(Markers.Opals) + 2;
+%
 % get charts; determined based off of Blank, CD8, and Tumor percentages if
 % there are more than 20 HPFs
 %
@@ -448,9 +450,11 @@ if length(charts1) > 20
     inc = 1;
     while length(charts1) ~= 20 && inc <= 2
         formatspec = strcat(repmat('%s ',[1,5]),{' '},repmat('%f32 ',[1,10]),...
-            { ' %s '},repmat('%f32 ',[1,45]),{' %s '},repmat('%f32 ',[1,45]),...
-            {' %s '},repmat('%f32 ',[1,45]),{' %s '},repmat('%f32 ',[1,44]),...
-            {' '},repmat('%s ',[1,2]),{' '}, repmat('%f32 ',[1,4]),{' '},...
+            { ' %s '},repmat('%f32 ',[1,5]),{' '},repmat('%f32 ',[1,5*layers]),...
+            { ' %s '},repmat('%f32 ',[1,5]),{' '},repmat('%f32 ',[1,5*layers]),...
+            { ' %s '},repmat('%f32 ',[1,5]),{' '},repmat('%f32 ',[1,5*layers]),...
+            { ' %s '},repmat('%f32 ',[1,4]),{' '},repmat('%f32 ',[1,5*layers]),...
+            {' '},repmat('%s ',[1,2]),{' '}, repmat('%f32 ',[1,4]),{' '}, ....
             repmat('%s ',[1,2]));
         formatspec = formatspec{1};
         %
@@ -1515,7 +1519,7 @@ function [ims, expr, d2] = getSegMaps(imageid, Markers)
 %
 % get antibody folder names
 %
-AB_fdnames = cellfun(@(x)extractBetween(x,'Phenotype\',['\',imageid.id]),...
+AB_fdnames = cellfun(@(x)extractBetween(x,'\Phenotype\',['\',imageid.id]),...
     imageid.outABexpr,'Uni',0);
 AB_fdnames = [AB_fdnames{:}];
 expr.namtypes = AB_fdnames;
@@ -1614,7 +1618,7 @@ formatspec = strcat(repmat('%s ',[1,4]),{' '},repmat('%f32 ',[1,11]),...
     repmat('%s ',[1,2]));
 formatspec = formatspec{1};
 %
-T = readtable([wd1,'\',marker,'\',filnm],'Format',formatspec,...
+T = readtable([wd1,'\',marker,'\',filnm,'.txt'],'Format',formatspec,...
     'Delimiter','\t','TreatAsEmpty',{' ','#N/A'});
 vars = T.Properties.VariableNames;
 ii = find(contains(vars,'micron'));
