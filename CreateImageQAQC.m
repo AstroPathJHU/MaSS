@@ -309,7 +309,8 @@ TCS = Markers.lin(ii);
 %
 SH = B.SegmentationHierarchy;
 if ~iscell(SH)
-    SH = num2cell(SH);
+    SH = num2str(SH);
+    SH = cellstr(SH);
 end
 Markers.SegHie = SH(LT);
 %
