@@ -120,7 +120,7 @@ errors = cell(length(filenms));
 % start the parpool if it is not open;
 % attempt to open with local at max cores, if that does not work attempt 
 % to open with BG1 profile, otherwise parfor should open with default
-%
+%{
 if isempty(gcp('nocreate'))
     try
         numcores = feature('numcores');
@@ -131,7 +131,7 @@ if isempty(gcp('nocreate'))
     catch
     end
 end
-%
+%}
 % loop through the mergetbls function for each sample with error catching
 %
 parfor i1 = 1:length(filenms)
