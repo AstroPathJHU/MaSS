@@ -1,0 +1,7 @@
+This branch is dedicated to 2.3 inForm segmentation approach. 
+In this approach the inForm segmentation output was a binary mask and not a label
+matrix. This makes defining the cell objects much harder. For this task, we compute the
+cell objects on our own and assign cells to the cell objects using their X and Y center positions,
+which are provided in the cell_seg_data output from inForm. If a cell center lies on a cell border,
+this cell is removed from the analysis. This avoids confusion and uncertainity in estimating locations.
+The test directory contains the full operable MaSS.m file for this version of the code.
