@@ -133,17 +133,17 @@ str1{1} = ['Creating QA/QC image output for tissue: ',uc,'. There are ',...
 try
     parfor i2 = 1:length(charts)
         %
-        %open mat lab data structure
+        % open mat lab data structure
         %
         [s{i2},imageid{i2},mycol{i2},imc,simage] =  mkimageid(charts,i2,wd,Markers);
         s{i2}.fig.CellXPos = round(s{i2}.fig.CellXPos);
         s{i2}.fig.CellYPos = round(s{i2}.fig.CellYPos);
         %
-        %make overlayed phenotype map and save the data stucture for later
+        % make overlayed phenotype map and save the data stucture for later
         %
         [s{i2},ima] = mkphenim(s{i2},Markers,mycol{i2},imageid{i2},imc,simage);
         %
-        %make moscaics for expression and lineage markers
+        % make moscaics for expression and lineage markers
         %
         mkindvphenim(s{i2},mycol{i2},imageid{i2},imc,simage, Markers, ima);
         mkexprim(mycol{i2},imageid{i2},imc, Markers, ima)
@@ -263,7 +263,7 @@ if iscell(nsegs)
     nsegs = cellfun(@(x) str2double(x), nsegs, 'Uni',0);
     nsegs = cell2mat(nsegs);
 end
-if find(nsegs(~ET) ~= 1)
+if find(nsegs(~ET) > 1)
      Markers.nsegs =  [' MaSS can only handle expression markers',...
          ' with multiple segmentations'];
     return
@@ -278,8 +278,11 @@ if iscell(SS)
     SS = cell2mat(SS);
     SS = str2num(SS);
 end
-SS = SS(nsegs == 1);
-mn = Markers.all(nsegs == 1);
+Markers.SegStatus = SS;
+%
+ii = nsegs == 1 & ~ismember(Markers.all,Markers.expr);
+SS = SS(ii);
+mn = Markers.all(ii);
 %
 % get number of different segmentations, remove markers with multiple
 % segmentations from the contention
@@ -309,7 +312,8 @@ TCS = Markers.lin(ii);
 %
 SH = B.SegmentationHierarchy;
 if ~iscell(SH)
-    SH = num2cell(SH);
+    SH = num2str(SH);
+    SH = cellstr(SH);
 end
 Markers.SegHie = SH(LT);
 %
@@ -698,34 +702,35 @@ end
 %
 % colors
 %
-if size(imc,2) == 8
+if size(imc,2) <= 8
     %%blue%green%yellow%red%orange%cyan%magenta%black%%
-    mycol.all = [0 0 1;
-        0 1 0;
+    mycolab = [0 1 0;
         1 1 0;
         1 0 0;
         0.91 0.41 0.17;
         0 1 1;
-        1 0 1;
-        0 0 0];
-elseif size(imc, 2) == 10
+        1 0 1;];
+    %
+elseif size(imc, 2) <= 10 && size(imc, 2) > 8
     %%blue%coral%green%yellow%red%orange%cyan%magenta%white%black%%
-    mycol.all = [0 0 1;
-        1 .502 .502
+    mycolab = [1 .7529 .7961;
         0 1 0;
         1 1 0;
         1 0 0;
         0.91 0.41 0.17;
         0 1 1;
         1 0 1;
-        1 1 1;
-        0 0 0];
+        1 1 1;];
 else
     n = num2str(size(imc, 2) - 1);
     error(['Error in ImageLoop > mkimageid: \n'...
         'Need to add color values for ',n,...
         ' color panel to mkimageid function in the ImageLoop at line 98'], class(n));
 end
+%
+mycol.all = [0 0 1;
+    mycolab(1:size(imc,2)-2, :);
+    0 0 0];
 %
 % lineage marker colors only
 %
@@ -1163,6 +1168,8 @@ for M = 1:length(Image.all_lineages)
     %
     [im_lineage_dapi_color, im_lineage_nodapi_color] = ...
         prepimages(im_lineage_dapi, cc, imageid.size, scol, seg);
+    [im_lineage_dapi_color_noseg, im_lineage_nodapi_color_noseg] = ...
+        prepimages(im_lineage_dapi, cc, imageid.size, scol, []);
     %
     % get the locations of the positive cells
     %
@@ -1179,7 +1186,8 @@ for M = 1:length(Image.all_lineages)
         % create single color image for phenotyped image with dapi
         %
         create_color_images(im_lineage_dapi_color, imageid.outABlin{M},...
-            Image,im_full_color,data, d.fig, im_lineage_nodapi_color)
+            Image,im_full_color,data, d.fig, im_lineage_nodapi_color,...
+            im_lineage_dapi_color_noseg,im_lineage_nodapi_color_noseg)
         %
         % make images for expression marker & lineage coexpression
         %
@@ -1200,14 +1208,17 @@ for M = 1:length(Image.all_lineages)
                 %
                 ly = expr.layers(t);
                 ime = im(:,ly);
-                imel = [im_lineage_dapi,ime];
+                imela = [im_lineage_dapi,ime];
                 cc1 = [cc; mycol.all(ly,:)];
                 %
                 [imel, imelnd] = ...
-                    prepimages(imel, cc1, imageid.size, scol, seg);
+                    prepimages(imela, cc1, imageid.size, scol, seg);
+                [imel_noseg, imelnd_noseg] = ...
+                    prepimages(imela, cc1, imageid.size, scol, []);
                 %
                 create_color_images(imel, [imageid.outABcoex{M},...
-                    expr.namtypes{t}], Image,im_full_color,data, d.fig, imelnd);
+                    expr.namtypes{t}], Image,im_full_color,data, d.fig,...
+                    imelnd, imel_noseg, imelnd_noseg);
             end
         end
     end
@@ -1311,17 +1322,9 @@ end
 %% ---------------------------------------------
 %%
 function create_color_images(im, imageidout, Image,...
-    im_full_color,data, d, im_nodapi)
+    im_full_color,data, d, im_nodapi, im_dapi_noseg, im_nodapi_noseg)
 %
-Image.image = insertMarker(im,data.xy,'+','color','white','size',1);
-iname = [imageidout,'single_color_expression_image.tif'];
-write_image(iname,Image.image,Image)
-%
-% create full color image for phenotyped image with dapi
-%
-imp = insertMarker(im_full_color,data.xy,'+','color','white','size',1);
-iname = [imageidout,'full_color_expression_image.tif'];
-write_image(iname,imp,Image)
+stypes = {'','_no_seg'};
 %
 % get the data sample
 %
@@ -1329,23 +1332,51 @@ data.neg = d(~data.ii,:);
 if height(data.neg) > 25
     data.neg =  datasample(data.neg,25,1,'Replace',false);
 end
-if height(data.pos) > 25 
+if height(data.pos) > 25
     data.pos = datasample(data.pos,25,1,'Replace',false);
 end
-%
-% Create the Image Mosiacs for local positive images with dapi
-%
 data.mos = cat(1,data.pos,data.neg);
-Image.x = data.mos.CellXPos;
-Image.y = data.mos.CellYPos;
-Image.imname = [imageidout,'cell_stamp_mosiacs_pos_neg.tif'];
-makemosaics(Image)
 %
-% Create the Image Mosiacs for local positive images without dapi
+for i1 = 1:2
+    stype = stypes{i1};
+    %
+    if i1 == 1
+        ims = im;
+    else
+        ims = im_dapi_noseg;
+    end
+    %
+    Image.image = insertMarker(ims, data.xy,'+','color','white','size',1);
+    iname = [imageidout,'single_color_expression_image',stype,'.tif'];
+    write_image(iname,Image.image,Image)
+    %
+    % Create the Image Mosiacs for local positive images with dapi
+    %
+    
+    Image.x = data.mos.CellXPos;
+    Image.y = data.mos.CellYPos;
+    Image.imname = [imageidout,'cell_stamp_mosiacs_pos_neg',stype,'.tif'];
+    makemosaics(Image)
+    %
+    if i1 == 1
+        ims = im_nodapi;
+    else
+        ims = im_nodapi_noseg;
+    end
+    %
+    % Create the Image Mosiacs for local positive images without dapi
+    %
+    Image.image = insertMarker(ims,data.xy,'+','color','white','size',1);
+    Image.imname = [imageidout,'cell_stamp_mosiacs_pos_neg_no_dapi',stype,'.tif'];
+    makemosaics(Image)
+    %
+end
 %
-Image.image = insertMarker(im_nodapi,data.xy,'+','color','white','size',1);
-Image.imname = [imageidout,'cell_stamp_mosiacs_pos_neg_no_dapi.tif'];
-makemosaics(Image)
+% create full color image for phenotyped image with dapi
+%
+imp = insertMarker(im_full_color,data.xy,'+','color','white','size',1);
+iname = [imageidout,'full_color_expression_image',stype,'.tif'];
+write_image(iname,imp,Image)
 %
 end
 %% write_image
@@ -1460,7 +1491,7 @@ for t = 1:length(expr.namtypes)
     %
     ly = expr.layer(t);
     %
-    ime = [im(:,1),im(:,ly)];
+    imea = [im(:,1),im(:,ly)];
     cc = [mycol.all(1,:); 1 1 1];
     %
     seg = ims(:,t);
@@ -1471,7 +1502,9 @@ for t = 1:length(expr.namtypes)
     % ---------------------------------------------------------------------
 
     [ime, imend] = ...
-        prepimages(ime, cc, imageid.size, scol, seg);
+        prepimages(imea, cc, imageid.size, scol, seg);
+    [ime_noseg, imend_noseg] = ...
+        prepimages(imea, cc, imageid.size, scol, []);
     %
     % get the positive cells
     %
@@ -1489,7 +1522,8 @@ for t = 1:length(expr.namtypes)
     if height(data.pos) > 1
         %
         create_color_images(ime, imageid.outABexpr{t},...
-            Image,im_full_color, data, d2{t}, imend);
+            Image,im_full_color, data, d2{t}, imend, ...
+            ime_noseg, imend_noseg);
         %
     end
 end
