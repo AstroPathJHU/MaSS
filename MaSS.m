@@ -13,7 +13,7 @@
 % --------------!!! file before continuing !!!-------------------
 %
 % wd = working directory of current specimen up to
-% *\inform_data\Phenotyped
+% *\inform_data
 % the *\inform_data directory should also contain a *\Component_Tiffs folder 
 %
 % The *\Phenotyped folder should contain: all 6 ABs that are analyzed by
@@ -43,7 +43,7 @@
 % sname = the sample name of the slide
 %
 %% Usage:
-% wd = 'W:\Clincial_Specimen\M1_1\inform_data\Phenotyped'
+% wd = 'W:\Clincial_Specimen\M1_1\inform_data'
 % sname = 'M1_1'
 % MergeConfig = 'W:\Clincial_Specimen\BatchID\BatchID_01.xlsx'
 %% output:
@@ -51,128 +51,77 @@
 % *\inform_data\Results\tmp_ForFiguresTables\* _cleaned_phenotyped_table.mat files 
 %% --------------------------------------------------------
 %%
-function [] = MaSS(wd,sname,MergeConfig)
+function [err_val] = MaSS(wd,sname,MergeConfig)
 %
-% run the file loop for the sample
-%
-[errors,errors2,tim,Markers] = fileloop(wd,sname,MergeConfig);
-%
-% create a error log file for the sample
-%
-createlog(errors,errors2,wd,tim,Markers);
-%
-end
-%% function: file loop; merge all multipass tables for a given specimen 
-%% --------------------------------------------------------------
-%% Created by: Benjamin Green - Johns Hopkins - 01/09/2019
-%% --------------------------------------------------------------
-%% Description
-% merge all multipass tables for a given specimen using proper error
-% handling
-%% --------------------------------------------------------
-%%
-function [errors, errors2,tim,Markers] = fileloop(wd,sname,MergeConfig)
+wd = [wd,'\Phenotyped'];
 %
 tim = cell(4,1);
-%
 tim{1} = datestr(now,'dd-mmm-yyyy HH:MM:SS');
-%
-tic
-errors2 = [];
-errors = cell(1,1);
-Markers = [];
+err_val = mywritetolog(wd, sname, '', 1, tim);
+e_code = err_handl(wd, sname, [], err_val);
+if e_code == 1
+    return
+end
 %
 % get Markers structure
 %
 try
-    Markers = createmarks(MergeConfig);
+    tim{1} = datestr(now,'dd-mmm-yyyy HH:MM:SS');
+    err_str = 'parsing MergeConfig file';
+    mywritetolog(wd, sname, err_str, 2, tim);
+    %    
+    [Markers, err_val] = createmarks(MergeConfig);
+    %
+    e_code = err_handl(wd, sname, Markers, err_val);
+    if e_code == 1
+        return
+    end
+    %
 catch
-    errors2 = ['Error in ',sname, ': check Batch ID files.'];
-    disp(errors2);
+    err_val = 8;
+    err_handl(wd, sname, Markers, err_val);
     return
-end
-%
-if strcmp(Markers.Tumor,...
-        ' MaSS must have only one "Tumor" designation')
-     errors2 = ['Error in ',sname,':', Markers.Tumor, '.'];
-     disp(errors2);
-     return
 end
 %
 % get all filenames for a directory
 %
 try
-    [filenms,errors2] =  getfilenames(wd,Markers);
+    tim{1} = datestr(now,'dd-mmm-yyyy HH:MM:SS');
+    err_str = 'get filenames and check image output';
+    mywritetolog(wd, sname, err_str, 2, tim);
+    [filenms, err_val] =  getfilenames(wd, Markers);
+    %
+    e_code = err_handl(wd, sname, Markers, err_val);
+    if e_code == 1
+        return
+    end
+    %
 catch
-    errors2 = ['Error in ',sname, ': check inForm output files.'];
-    disp(errors2);
-    return
-end
-if ~isempty(errors2)
-    disp(errors2);
+    err_val = 13;
+    err_handl(wd, sname, Markers, err_val);
     return
 end
 %
-tim{2} = length(filenms);
+% run the file loop for the sample
 %
-errors = cell(length(filenms));
-%
-% start the parpool if it is not open;
-% attempt to open with local at max cores, if that does not work attempt 
-% to open with BG1 profile, otherwise parfor should open with default
-%
-if isempty(gcp('nocreate'))
-    try
-        numcores = feature('numcores');
-        if numcores > 12
-            numcores = 12;
-        end
-        evalc('parpool("local",numcores)');
-    catch
-    end
+try
+    %
+    tim{1} = datestr(now,'dd-mmm-yyyy HH:MM:SS');
+    tim{2} = length(filenms);
+    err_str = ['merging ',num2str(tim{2}), ' file(s)'];
+    mywritetolog(wd, sname, err_str, 2, tim);
+    %
+    [errors,tim,Markers] = fileloop(wd, sname, filenms, Markers, tim);
+    %
+    tim{1} = datestr(now,'dd-mmm-yyyy HH:MM:SS');
+    err_str = ['successfully merged ',num2str(tim{3}),...
+        ' file(s), in ', tim{4}, ' sec(s)'];
+    mywritetolog(wd, sname, err_str, 2, tim);
+    %
+catch
+    err_val = 15;
+    err_handl(wd, sname, Markers, err_val);
 end
-%
-% loop through the mergetbls function for each sample with error catching
-%
-parfor i1 = 1:length(filenms)
-    %
-    % current filename
-    %
-    fname = filenms(i1);
-    %
-    % try each image through the merge tables function
-    %
-    try
-        [fData,~] = mergetbls(fname,Markers,wd);
-        if isempty(fData)
-            str = ['Error in ',fname.name,...
-                ': check inForm Cell Analysis output.']
-            %
-            nm = extractBefore(fname.name,'cell_seg');
-            nm = [nm,'cleaned_phenotype_table.csv'];
-            ftd = fullfile([wd,'\Results\Tables'],nm);
-            %
-            delete(ftd)
-            disp(str);
-            errors{i1} = fname.name;
-        end
-    catch
-       disp(['Error in ',fname.name,...
-           ': check inForm Cell Analysis output.']);
-       errors{i1} = fname.name;  
-    end
-    %
-end
-%
-% close parallel loop
-%
-poolobj = gcp('nocreate');
-delete(poolobj);
-%
-tim{3} = toc;
-%
-filenms = dir([wd,'\Results\Tables\*_cleaned_phenotype_table.csv']);
-tim{4} = length(filenms);
 %
 end
 %% function: createmarks; Create Markers data structure
@@ -184,30 +133,34 @@ end
 % structure
 %% --------------------------------------------------------
 %%
-function[Markers] = createmarks(MergeConfig)
+function [Markers, err_val] = createmarks(MergeConfig)
 %
 warning('off','MATLAB:table:ModifiedAndSavedVarnames')
+Markers = [];
 %
 try
     BIDtbl = readtable(MergeConfig);
     B = BIDtbl(:,{'Opal','Target',...
     'TargetType','CoexpressionStatus','SegmentationStatus',...
-    'SegmentationHierarchy', 'ImageQA_QC', 'NumberofSegmentations'});
+    'SegmentationHierarchy', 'ImageQA', 'NumberofSegmentations'});
 catch
+    err_val = 1;
     return
 end
 %
-% remove DAPI row
+% check table input variables
 %
-dr = strcmp(B.Opal, 'DAPI');
-B(dr,:) = [];
+[B, err_val] = checkTableVars(B);
+if ~ismember(err_val, [0,2])
+    return
+end
 %
 % start setting up Markers struct
 %
 Markers.Opals = B.Opal;
 Markers.all = B.Target;
 %
-ii = strcmp('Tumor',B.ImageQA_QC);
+ii = strcmp('Tumor',B.ImageQA);
 Markers.all_original = Markers.all;
 %
 % change Tumor marker designation to 'Tumor'
@@ -216,7 +169,7 @@ if sum(ii) == 1
     Markers.all(ii) = {'Tumor'};
     Markers.Tumor{1} = 'Tumor';
 elseif sum(ii) > 1
-    Markers.Tumor =  ' MaSS must have only one "Tumor" designation';
+    err_val = 6;
     return
 else
      Markers.Tumor{1} = '';
@@ -239,8 +192,7 @@ if iscell(nsegs)
     nsegs = cell2mat(nsegs);
 end
 if find(nsegs(~ET) > 1)
-     Markers.nsegs =  [' MaSS can only handle expression markers',...
-         ' with multiple segmentations'];
+    err_val = 7;
     return
 end
 Markers.nsegs = nsegs;
@@ -249,12 +201,11 @@ Markers.nsegs = nsegs;
 % the primary segmentation
 %
 SS = B.SegmentationStatus;
-if iscell(SS)
-    SS = cell2mat(SS);
-    SS = str2num(SS);
-end
-SS = SS(nsegs == 1);
-mn = Markers.all(nsegs == 1);
+Markers.SegStatus = SS;
+%
+ii = nsegs == 1 & ~ismember(Markers.all,Markers.expr);
+SS = SS(ii);
+mn = Markers.all(ii);
 %
 % get number of different segmentations, remove markers with multiple
 % segmentations from the contention
@@ -273,7 +224,7 @@ end
 % get coexpression status for lineage markers
 %
 CS = B.CoexpressionStatus(LT);
-ii = ~strcmp(CS,'NA');
+ii = ~strcmp(CS,'NA') | ~strcmp(CS,'NaN');
 CS = CS(ii);
 %
 % track the corresponding target
@@ -283,10 +234,6 @@ TCS = Markers.lin(ii);
 % get segmentation heirarchy
 %
 SH = B.SegmentationHierarchy;
-if ~iscell(SH)
-    SH = num2str(SH);
-    SH = cellstr(SH);
-end
 Markers.SegHie = SH(LT);
 %
 % CS that is not NA in lineage markers; find which coexpressions are
@@ -330,7 +277,7 @@ for i1 = 1:length(CS)
                 ii = strcmp(T, Markers.lin);
                 seg2 = Markers.SegHie(ii);
                 %
-                seg = max([str2num(seg1{1}),str2num(seg2{1})]);
+                seg = max([str2double(seg1{1}),str2double(seg2{1})]);
                 sego{track} = num2str(seg);
             end
         end
@@ -351,11 +298,10 @@ for i1 = 1:length(CS)
     Markers.Coex{i1} = sum(x,2);
 end
 %
+% reformat for proper dims
 %
-%
+Markers.Opals = cellfun(@str2double, Markers.Opals, 'Uni',0);
 Markers.Opals = cell2mat(Markers.Opals);
-Markers.Opals = str2num(Markers.Opals);
-%
 Markers.all = Markers.all';
 Markers.all_original = Markers.all_original';
 Markers.lin = Markers.lin';
@@ -364,6 +310,109 @@ Markers.nsegs = Markers.nsegs';
 Markers.seg = Markers.seg';
 Markers.altseg = Markers.altseg';
 Markers.SegHie = Markers.SegHie';
+%
+end
+%% function: checkTableVars
+%% --------------------------------------------------------------
+%% Created by: Benjamin Green - Johns Hopkins - 07/07/2020
+%% --------------------------------------------------------------
+%% Description
+% checks that the table input is correct 
+%% --------------------------------------------------------------
+%%
+function [B, err_val] = checkTableVars(B)
+%%
+% check the table variables to be sure they are in the correct format for
+% the code. If they are not convert them.
+%%
+%
+err_val = 0;
+%
+% check the data type for Opal column
+%
+if isa(B.Opal,'double')
+   %
+   % if B.Opal is a 'double' convert to a string 
+   %
+   tmpopal = num2cell(B.Opal);
+   tmpopal = cellfun(@(x) num2str(x), tmpopal, 'Uni', 0);
+   ii = strcmp(tmpopal, 'NaN');
+   %
+   if sum(ii) > 1
+      err_val = 2;
+      ii = find(ii,1);
+   end
+   %
+   tmpopal(ii) = {'DAPI'};
+   B.Opal = tmpopal';
+end
+%
+if ~isa(B.Opal, 'cell')
+  err_val = 3;
+  return
+end
+%
+% check the data type for the coexpression status column
+%
+if isa(B.CoexpressionStatus,'double')
+   %
+   % if B.Opal is a 'double' convert to a string 
+   %
+   tmpCS = num2cell(B.CoexpressionStatus);
+   tmpCS = cellfun(@(x) num2str(x), tmpCS, 'Uni', 0);
+   %
+   for i1 = 1:length(tmpCS)
+       tmpCS_n = tmpCS{i1};
+       if length(tmpCS_n) > 3
+           ii = 3:3:length(tmpCS_n) - 1;
+           t(1:length(tmpCS_n)) = char(0);
+           t(ii) = ',';
+           tmpCS_n = [tmpCS_n;t];
+           tmpCS_n = reshape(tmpCS_n(tmpCS_n ~= 0),1,[]);
+           tmpCS{i1} = tmpCS_n;
+       end
+   end
+   %
+   B.CoexpressionStatus = tmpCS;
+   %
+end
+%
+B.CoexpressionStatus = cellfun(@(x) replace(x, ',',''),...
+      B.CoexpressionStatus, 'Uni',0);
+%
+if ~isa(B.Opal, 'cell')
+    err_val = 4;
+end
+%
+% remove the DAPI row
+%
+dr = strcmp(B.Opal, 'DAPI');
+if sum(dr) ~= 1
+    err_val = 5;
+end
+B(dr,:) = [];
+%
+% check the last 3 columns are all set as numeric
+%
+SS = B.SegmentationStatus;
+if iscell(SS)
+    %SS = cell2mat(SS);
+    B.SegmentationStatus = str2double(SS);
+end
+%
+SH = B.SegmentationHierarchy;
+if ~iscell(SS)
+    SH = num2str(SH);
+    SH = cellstr(SH);
+    B.SegmentationHierarchy = SH;
+end
+%
+SS = B.NumberofSegmentations;
+if iscell(SS)
+    %SS = cell2mat(SS);
+    B.NumberofSegmentations = str2double(SS);
+end
+%
 end
 %% function: getfilenames; Get names of all files in a directory
 %% --------------------------------------------------------------
@@ -374,42 +423,14 @@ end
 % and gets the names of all inform tables
 %% --------------------------------------------------------------
 %%
-function [filenames, e]  = getfilenames(wd,Markers,uc)
+function [filenames, err_val]  = getfilenames(wd, Markers)
 %
 %delete old Results if it exists & create a new results table
 %
-e = [];
+err_val = 0;
 %
 filenames = cell(length(Markers.all),1);
 nm = cell(1,length(Markers.all));
-%
-if exist([wd,'\Results\Tables'],'dir')
-    try
-        delete([wd,'\Results\Tables\*'])
-    catch
-        e = ['Error in ', uc,': could not delete old ',...
-            '"*\Results\Tables folder";',...
-            ' a file may be open or permission may be denied'];
-        disp(e)
-        return
-    end
-else
-    mkdir (wd,'Results\Tables')
-end
-%
-if exist([wd,'\Results\tmp_ForFiguresTables'],'dir')
-    try
-        delete([wd,'\Results\tmp_ForFiguresTables\*'])
-    catch
-        e = ['Error in ', uc,': could not delete old ',...
-            '"*\Results\tmp_ForFiguresTables" folder;',...
-            ' a file may be open or permission may be denied'];
-        disp(e)
-        return
-    end
-else
-    mkdir (wd,'Results\tmp_ForFiguresTables')
-end
 %
 % import file names for all inform file names
 %
@@ -422,7 +443,7 @@ end
 %check that all fields are in all inform output
 %
 for i1 = 2: length(Markers.all)
-    a(:,i1-1) = ismember(nm{:,1},nm{:,i1});
+    a(:,i1-1) = ismember(lower(nm{:,1}),lower(nm{:,i1}));
 end
 [x,~] = size(a);
 ii = zeros(x,1);
@@ -435,18 +456,18 @@ filenames = filenames{1,1}(ii);
 % check segmentation 
 %
 if ~isempty(filenames)
-    nm = extractBefore(filenames(1).name,'cell_seg_data.txt');
+    nm = extractBefore(filenames(1).name,"]_cell");
     %
+    if isempty(nm)
+        nm = extractBefore(filenames(1).name,"]_CELL");
+    end    %
     % get 1ry segmentation and see if it has proper layers
     %
     wd1 = [wd,'\',Markers.seg{1},'\'];
-    iname = [wd1,nm,'binary_seg_maps.tif'];
+    iname = [wd1,nm,']_binary_seg_maps.tif'];
     props = imfinfo(iname);
     if length(props) < 4
-        e = ['Error in ', uc,...
-            ': check binary segmentation maps',...
-            ' in ',Markers.seg{1}];
-        disp(e)
+        err_val = 11;
         return
     end
     %
@@ -456,13 +477,10 @@ if ~isempty(filenames)
         for i1 = 1:length(Markers.altseg)
             mark = Markers.altseg{i1};
             wd1 = [wd,'\',mark,'\'];
-            iname = [wd1,nm,'binary_seg_maps.tif'];
+            iname = [wd1,nm,']_binary_seg_maps.tif'];
             props = imfinfo(iname);
             if length(props) < 4
-                e = ['Error in ', uc,...
-                    ': check binary segmentation maps',...
-                    ' in ',mark];
-                disp(e)
+                err_val = 12;
                 return
             end
         end
@@ -470,96 +488,257 @@ if ~isempty(filenames)
 end
 %
 end
-%% function: createlog; Create error log for images processed in the fileloop
+%% function: mywritetolog
 %% --------------------------------------------------------------
-%% Created by: Benjamin Green - Johns Hopkins - 01/18/2019
+%% Created by: Benjamin Green - Johns Hopkins - 07/07/2020
 %% --------------------------------------------------------------
 %% Description
-% create a log file in the *\Results directory that tracks any failed
-% fields that were not mentioned in the inform_error logs
+% create the log and output resultant error messages
 %% --------------------------------------------------------------
+%% input:
+% err_val = exit code value indicating different errors
+% loc = location in main code block of log file message
+% wd = working directory of current specimen up to inform_data\Phenotyped
+% tim = contains different file and time information
 %%
-function log = createlog(errors, errors2, wd, tim, Markers)
+function err_val = mywritetolog(wd, sname, err_str, locs, tim)
 %
-% get non-empty cells, ie the names of images that had errors
+logf = [wd,'\Results\Tables\MaSS.log'];
+err_val = 0;
 %
-errors = errors(~cellfun('isempty',errors));
-%
-% create file & folder
-%
-logfd = [wd,'\Results\Tables'];
-if ~exist(logfd, 'dir')
-    mkdir(logfd)
-end
-logf = [wd,'\Results\Tables\MaSSLog.txt'];
-%
-% create first line of file
-%
-tim1 = tim{1};
-str = ['Merging a Single Sample for inForm Cell Analysis tables started - ',...
-    tim1,'\r\n'];
-tim1 = num2str(tim{2});
-if ~isempty(tim1)
-    str = [str,'     ',tim1,' inForm Cell Analysis *cell_seg_data.txt tables',...
-        ' detected. \r\n'];
-end
-%
-% add to list of any errors that may have occured
-%
-if ~isempty(errors2)
+if locs == 1
     %
-    % if the code never made it passed Createmarks the error message is as
-    % follows
+    s = warning('error', 'MATLAB:DELETE:Permission');
+    warning('error', 'MATLAB:DELETE:FileNotFound');
     %
-    str = [str, errors2,'\r\n'];
-else
-    if ~isempty(errors)
-        str = [str,'There was/were an error(s) on the following image(s): \r\n'];
-        for i1 = 1: length(errors)
-            %
-            % write out errors to the file
-            %
-            fname = errors{i1};
-            str = [str,'     Problem processing image "',fname,...
-                '": Error in fileloop("',fname,...
-                '"): could not find inForm Cell Analysis output. \r\n'];
+    if exist([wd,'\Results\Tables'],'dir')
+        try
+            delete([wd,'\Results\Tables\*'])
+        catch
+            err_val = 9;
+            warning(s);
+            return
         end
     else
-        %
-        % if there were no errors output this message in line2 instead
-        %
-        tim1 = num2str(tim{3});
-        tim2 = num2str(tim{4});
-        %
-        str = [str,'     Successfully merged ',tim2,' image data tables in ',...
-            tim1, ' secs. \r\n'];
-        %
-        tim1 = dir([wd,'\Results\tmp_ForFiguresTables\*.mat']);
-        tim1 = num2str(length(tim1));
-        %
-        if ~isempty(Markers.Tumor{1})
-            tim2 = ['     Criteria for temporary tables: ',...
-                'fields with 600 total cells and 60 tumor cells.'];
-        else
-              tim2 = ['     Criteria for temporary tables: ',...
-                'fields with 600 total cells.'];
+        mkdir (wd,'Results\Tables')
+    end
+    %
+    if exist([wd,'\Results\tmp_ForFiguresTables'],'dir')
+        try
+            delete([wd,'\Results\tmp_ForFiguresTables\*'])
+        catch
+            err_val = 10;
+            warning(s);
+            return
         end
-        str = [str,tim1,...
-            ' temporary tables for QA/QC figures printed. \r\n',tim2,' \r\n'];
+    else
+        mkdir (wd,'Results\tmp_ForFiguresTables')
+    end
+    %
+    warning(s);
+    %
+    % create file & folder
+    %
+    logfd = [wd,'\Results\Tables'];
+    if ~exist(logfd, 'dir')
+        mkdir(logfd)
+    end
+    %
+    % create first line of file
+    %
+    tim1 = tim{1};
+    str = [sname, ';merge inForm ', ...
+           'tables started;', tim1, '\r\n'];
+    %
+    fileID = fopen(logf,'wt');
+    fprintf(fileID,str);
+    fclose(fileID);
+    %
+end
+%
+% for error or warning messages write the message out in the correct format
+%
+if locs == 2
+    %
+    tim1 = tim{1};
+    str = [sname, ';',err_str,';', tim1, '\r\n'];
+    %
+    if isfile(logf)
+        fileID = fopen(logf,'a');
+    else 
+        fileID = fopen(logf,'wt');
+    end
+    %
+    fprintf(fileID,str);
+    fclose(fileID);
+    %
+end
+%
+end
+%% function: err_handl
+%% --------------------------------------------------------------
+%% Created by: Benjamin Green - Johns Hopkins - 07/07/2020
+%% --------------------------------------------------------------
+%% Description
+% if there is an err_val that is not 0; output the corresponding message
+% and return and exit code 1 to exit MaSS (errors) 0 to keep going
+% (warnings)
+%% --------------------------------------------------------
+%%
+function e_code = err_handl(wd, sname, Markers, err_val)
+%
+if err_val ~= 0
+    tim{1} = datestr(now,'dd-mmm-yyyy HH:MM:SS');
+    %
+    switch err_val
+        case 1
+            err_str = ['Error: MergeConfig file not ',...
+                'found or could not be opened'];
+            e_code = 1;
+        case 2
+            err_str = ['Warning: MergeConfig file read as double ',...
+                'and two rows read as NaN. Changing first row to DAPI and ',...
+                'ignoring the second'];
+            e_code = 0;
+        case 3
+            err_str = ['Error: MergeConfig file "Opal" column could ',...
+                'not be parsed'];
+            e_code = 1;
+        case 4
+            err_str = ['Error: MergeConfig file "Coexpression" column could ',...
+                'not be parsed'];
+            e_code = 1;
+        case 5
+            err_str = ['Error: could not find DAPI row in the ',...
+                'MergeConfig file'];
+            e_code = 1;
+        case 6
+            err_str = ['Error: MergeConfig file should only contain ',...
+                'one tumor designation'];
+            e_code = 1;
+        case 7
+            err_str = ['Error: MaSS algorithm can only handle ',...
+                'expression markers with multiple segmentation ',...
+                'algorithms; check MergeCongif file'];
+            e_code = 1;
+        case 8
+            err_str = ['Error: could not parse MergeConfig files'];
+            e_code = 1;
+        case 9
+            err_str = ['Error: could not delete previous results folders.',...
+                ' Please check folder permissions and that all ',...
+                'files are closed'];
+            e_code = 1;
+        case 10
+            err_str = ['Error: could not delete previous ',...
+                'tmp_ForFiguresTables folders. Please check ',...
+                'folder permissions and that all files are closed'];
+            e_code = 1;
+        case 11
+            err_str = ['Error: check binary segmentation maps in ', ...
+                Markers.seg{1}];
+            e_code = 1;
+        case 12
+            err_str = ['Error: check binary segmentation maps in ',mark];
+            e_code = 1;
+        case 13
+            err_str = 'Error: check inForm output files';
+            e_code = 1;
+        case 14
+            err_str = ['Error: check inForm Cell Analysis output for ', ...
+                    Markers.name];
+            e_code = 0;
+        case 15
+            err_str = 'Error: check inForm output files';
+            e_code = 0;
+    end
+    %
+    disp([sname, ';',err_str,';', tim{1}])
+    mywritetolog(wd, sname, err_str, 2, tim);
+    %
+else
+    e_code = 0;
+end
+end
+%% function: file loop; merge all multipass tables for a given specimen
+%% --------------------------------------------------------------
+%% Created by: Benjamin Green - Johns Hopkins - 01/09/2019
+%% --------------------------------------------------------------
+%% Description
+% merge all multipass tables for a given specimen using proper error
+% handling
+%% --------------------------------------------------------
+%%
+function [errors, tim, Markers] = fileloop(wd, sname, filenms, Markers, tim)
+%
+tic
+errors = cell(length(filenms));
+%
+% start the parpool if it is not open;
+% attempt to open with local at max cores, if that does not work attempt 
+% to open with BG1 profile, otherwise parfor should open with default
+%
+if isempty(gcp('nocreate'))
+    try
+        numcores = feature('numcores');
+        %
+        if numcores > length(filenms) 
+            numcores = ceil(length(filenms)/2);
+        end
+        %
+        if numcores > 12
+            numcores = 12;
+        end
+        evalc('parpool("local",numcores)');
+    catch
     end
 end
-dt = datestr(now,'dd-mmm-yyyy HH:MM:SS');
-str = [str,...
-    'Merging a single sample for inForm Cell Analysis tables complete - ',...
-    dt,'\r\n'];
 %
-% now write out the string
+% loop through the mergetbls function for each sample with error catching
 %
-fileID = fopen(logf,'wt');
-fprintf(fileID,str);
-fclose(fileID);
+parfor i1 = 1:length(filenms)
+    %
+    % current filename
+    %
+    fname = filenms(i1);
+    %
+    % try each image through the merge tables function
+    %
+    try
+        [fData] = mergetbls(fname,Markers,wd);
+        if isempty(fData)
+            %
+            err_handl(wd, sname, fname, 14);
+            %
+            nm = extractBefore(fname.name,"cell_seg");
+            %
+            if isempty(nm)
+                nm = extractBefore(fname.name,"CELL_SEG");
+            end
+            nm = [nm,'cleaned_phenotype_table.csv'];
+            ftd = fullfile([wd,'\Results\Tables'],nm);
+            %
+            delete(ftd)
+            errors{i1} = fname.name;
+            %
+        end
+    catch
+       err_handl(wd, sname, fname, 14);
+       errors{i1} = fname.name;  
+    end
+    %
+end
 %
-log = str;
+% close parallel loop
+%
+poolobj = gcp('nocreate');
+delete(poolobj);
+%
+% get final result measures
+%
+tim{3} = toc;
+filenms = dir([wd,'\Results\Tables\*_cleaned_phenotype_table.csv']);
+tim{4} = length(filenms);
 %
 end
 %% function:mergetbls; merge tables function for inform output
@@ -572,50 +751,41 @@ end
 % it generates a *\Tables\ directory and merged inform files
 %% --------------------------------------------------------------
 %%
-function [fData,logf] = mergetbls(fname,Markers,wd)
+function [fData] = mergetbls(fname,Markers,wd)
 %
 % read in data
 %
-logf ='read in data';
 [C, p2, units] = readalltxt(fname,Markers,wd);
 %
 if p2 ~= length(Markers.all)
     fData = [];
-    logf = 'path error in file';
     return
 end
 %
 % select proper phenotypes
 %
-logf = [logf,';get phenotype fields'];
 f = getphenofield(C, Markers, units);
 %
 % remove cells within X number of pixels in cells
 %
-logf = [logf,';find other cells'];
 d = getdistinct(f,Markers);
 %
 % removes double calls in hierarchical style
 %
-logf = [logf,';resolve coexpressions of lineage markers'];
 q = getcoex(d,Markers);
 %
 % get polygons from inform and remove other cells inside secondary 
 % segmentation polygons
 %
-logf = [logf,';find segmentation, remove others in tumor'];
 a = getseg(q,Markers);
 %
 % determine expression markers by cells that are in X radius
 %
-logf = [logf,';find expression marker expression'];
 fData = getexprmark(a,Markers);
 %
 % save the data
 %
-logf = [logf,';save tables'];
 ii = parsave(fData,fname,Markers,wd);
-logf = [logf,';make table for this figure: ',ii];
 %
 end
 %% function: readalltxt; read all table for a given fname
@@ -810,12 +980,30 @@ formatspec = strcat(repmat('%s ',[1,4]),{' '},repmat('%f32 ',[1,11]),...
     repmat('%s ',[1,2]));
 formatspec = formatspec{1};
 %
-T = readtable([wd,'\',marker,'\',filnm.name],'Format',formatspec,...
-    'Delimiter','\t','TreatAsEmpty',{' ','#N/A'});
+try
+    T = readtable([wd,'\',marker,'\',filnm.name],'Format',formatspec,...
+        'Delimiter','\t','TreatAsEmpty',{' ','#N/A'});
+catch
+    %
+    nm = extractBefore(filnm.name,"]_cell_seg");
+    if isempty(nm)
+        nm = extractBefore(filnm.name,"]_CELL_SEG");
+    end
+    %
+    try
+        nm1 = [nm, ']_CELL_SEG_DATA.TXT'];
+        T = readtable([wd,'\',marker,'\',nm1],'Format',formatspec,...
+        'Delimiter','\t','TreatAsEmpty',{' ','#N/A'});
+    catch
+         nm1 = [nm, ']_cell_seg_data.txt'];
+         T = readtable([wd,'\',marker,'\',nm1],'Format',formatspec,...
+        'Delimiter','\t','TreatAsEmpty',{' ','#N/A'});
+    end
+end
 %
 % Find Coordinates
 %
-f = strsplit(filnm.name,{'_[',']_cell_seg_data.txt'});
+f = strsplit(filnm.name,{'_[',']_'});
 f = strsplit(f{2},',');
 T.fx = repmat(str2double(f{1}),height(T),1);
 T.fy = repmat(str2double(f{2}),height(T),1);
@@ -908,7 +1096,11 @@ function f = getphenofield(C, Markers, units)
 fold = extractBefore(C.fname.folder,'Phenotyped');
 fold = [fold,'\Component_Tiffs'];
 iname = [fold,'\',extractBefore(C.fname.name,...
-    'cell_seg_data.txt'),'component_data.tif'];
+    "]_cell_seg"),']_component_data.tif'];
+if isempty(iname)
+    iname = [fold,'\',extractBefore(C.fname.name,...
+        "]_CELL_SEG"),']_component_data.tif'];
+end
 imageinfo = imfinfo(iname);
 W = imageinfo.Width;
 H = imageinfo.Height;
@@ -948,13 +1140,13 @@ for i3 = 1:length(Markers.all)
             fy = (1/scalea .* dat2.fy - (H/2)); %pixles
         end
         %
-        if find(dat2.CellXPos > W) 
-            dat2.CellXPos = 1/scale .* (dat2.CellXPos - fx);
+        if strcmp(units{1},'microns')
+            dat2.CellXPos = floor(1/scale .* (dat2.CellXPos - fx));
             ii = dat2.CellXPos < 1;
             %
             dat2.CellXPos(ii) = 1;
             %
-            dat2.CellYPos = 1/scale .* (dat2.CellYPos - fy);
+            dat2.CellYPos = floor(1/scale .* (dat2.CellYPos - fy));
             ii = dat2.CellYPos < 1;
             %
             dat2.CellYPos(ii) = 1;
@@ -980,13 +1172,13 @@ if ~isempty(dat2)
         fy = (1/scalea .* dat2.fy - (H/2)); %pixles
     end
     %
-    if find(dat2.CellXPos > W)
-        dat2.CellXPos = 1/scale .* (dat2.CellXPos - fx);
+    if strcmp(units{1},'microns')
+        dat2.CellXPos = floor(1/scale .* (dat2.CellXPos - fx));
         ii = dat2.CellXPos < 1;
         %
         dat2.CellXPos(ii) = 1;
         %
-        dat2.CellYPos = 1/scale .* (dat2.CellYPos - fy);
+        dat2.CellYPos = floor(1/scale .* (dat2.CellYPos - fy));
         ii = dat2.CellYPos < 1;
         %
         dat2.CellYPos(ii) = 1;
@@ -1509,18 +1701,31 @@ tcellids = cell(length(Markers.altseg));
 trows = false(max(CellID),length(Markers.altseg));
 %
 for i1 = 1:length(Markers.altseg)
+    %
     markalt = Markers.altseg{i1};
+    idx = ismember(Markers.all, markalt);
+    %
+    SS = Markers.SegStatus(idx);
+    s_markers_idx = Markers.SegStatus == SS & ismember(Markers.all,...
+        Markers.lin)';
+    s_markers = Markers.all(s_markers_idx);
+    iis = startsWith(Markers.add, s_markers);
+    s_markers = [s_markers, Markers.add(iis)];
     %
     % get folder and image names for altseg
     %
     fdname = [extractBefore(p.fname.folder,Markers.all{1}),...
         markalt,'\'];
-    iname = [fdname,extractBefore(p.fname.name,'cell_seg_data.txt'),...
-        'binary_seg_maps.tif'];
+    iname = [fdname,extractBefore(p.fname.name,...
+            "]_cell_seg"),']_binary_seg_maps.tif'];
+    if isempty(iname)
+        iname = [fdname,extractBefore(p.fname.name,...
+            "]_CELL_SEG"),']_binary_seg_maps.tif'];
+    end
     %
     % get rows of altseg cells
     %
-    trows(:,i1) = strcmp(p.fig.Phenotype, markalt);
+    trows(:,i1) = ismember(p.fig.Phenotype, s_markers);
     %
     % get inForm cellids of altseg cells
     %
@@ -1540,7 +1745,10 @@ end
 %
 iname = fullfile(p.fname.folder,p.fname.name);
 iname = replace(iname, Markers.all{1}, Markers.seg{1});
-iname = replace(iname, 'cell_seg_data.txt','binary_seg_maps.tif');
+iname = [extractBefore(iname,"]_cell_seg"),']_binary_seg_maps.tif'];
+if isempty(iname)
+    iname = [extractBefore(iname,"]_CELL_SEG"),']_binary_seg_maps.tif'];
+end
 %
 % get cellids of 1ry seg cells
 %
@@ -1620,7 +1828,7 @@ CellID = (1:1:height(p.fig))';
 p.fig.CellID = CellID;
 %
 end
-%% function: OrganizeCells; 
+%% function: OrganizeCells;
 %% --------------------------------------------------------------
 %% Created by: Benjamin Green - Johns Hopkins - 01/03/2019
 %% --------------------------------------------------------------
@@ -1972,8 +2180,12 @@ end
 %
 % write out whole image csv table
 %
-nm = [wd,'\Results\Tables\',erase(fname.name,...
-    'cell_seg_data.txt'),'cleaned_phenotype_table.csv'];
+nm = [wd,'\Results\Tables\',extractBefore(fname.name,...
+    ']_cell_seg'),']_cleaned_phenotype_table.csv'];
+if isempty(nm)
+    nm = [wd,'\Results\Tables\',extractBefore(fname.name,...
+    ']_CELL_SEG'),']_cleaned_phenotype_table.csv'];
+end
 writetable(fData.fig(:,[1,3:end]),nm);
 %
 % write out image for use in figures later
@@ -1987,8 +2199,13 @@ else
 end
 if length(fData.fig.CellID) > 400 && length(find(r)) > 60
     fname2 = strcat(wd,'\Results\tmp_ForFiguresTables\',...
-        erase(fname.name,'cell_seg_data.txt'),...
-        'cleaned_phenotype_table.mat');
+        extractBefore(fname.name,']_cell_seg'),...
+        ']_cleaned_phenotype_table.mat');
+    if isempty(fname2)
+        fname2 = strcat(wd,'\Results\tmp_ForFiguresTables\',...
+        extractBefore(fname.name,']_CELL_SEG'),...
+        ']_cleaned_phenotype_table.mat');
+    end
     save(fname2,'fData');
     mktmp = 'TRUE';
 else
