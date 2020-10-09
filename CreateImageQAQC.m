@@ -421,7 +421,12 @@ if isa(B.Opal,'double')
    end
    %
    tmpopal(ii) = {'DAPI'};
-   B.Opal = tmpopal;
+   ss = size(tmpopal);
+   if ss(1) == 1
+       B.Opal = tmpopal';
+   else
+       B.Opal = tmpopal;
+   end
 end
 %
 if ~isa(B.Opal, 'cell')

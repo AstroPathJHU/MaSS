@@ -79,7 +79,7 @@ try
     %
 catch
     err_val = 8;
-    err_handl(wd, sname, Markers, err_val);
+    err_handl(wd, sname, [], err_val);
     return
 end
 %
@@ -344,7 +344,12 @@ if isa(B.Opal,'double')
    end
    %
    tmpopal(ii) = {'DAPI'};
-   B.Opal = tmpopal';
+   ss = size(tmpopal);
+   if ss(1) == 1
+       B.Opal = tmpopal';
+   else
+       B.Opal = tmpopal;
+   end
 end
 %
 if ~isa(B.Opal, 'cell')
@@ -1709,8 +1714,10 @@ for i1 = 1:length(Markers.altseg)
     s_markers_idx = Markers.SegStatus == SS & ismember(Markers.all,...
         Markers.lin)';
     s_markers = Markers.all(s_markers_idx);
-    iis = startsWith(Markers.add, s_markers);
-    s_markers = [s_markers, Markers.add(iis)];
+    if ~isempty(Markers.add)
+        iis = startsWith(Markers.add, s_markers);
+        s_markers = [s_markers, Markers.add(iis)];
+    end
     %
     % get folder and image names for altseg
     %
