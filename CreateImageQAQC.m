@@ -8,6 +8,8 @@
 %%
 function [T] = CreateImageQAQC(wd,uc,MergeConfig)
 %
+wd = [wd,'\Phenotyped'];
+%
 % run image loop for sname in uc
 %
 [T,e,tim,str1] = imageloop(wd,uc,MergeConfig);
@@ -74,16 +76,15 @@ str1 = cell(2,1);
 T = [];
 %
 try
-    Markers = createmarks(MergeConfig);
+    [Markers, err_val] = createmarks(MergeConfig);
+    if err_val ~= 0
+        disp(['exit code: ',num2str(err_val)])
+        e{1} = ['Error in: ',uc, ' check Batch ID files.'];
+        disp(e{1});
+        return
+    end
 catch
-    e{1} = ['Error in: ',uc, ' check Batch ID files.'];
-    disp(e{1});
-    return
-end
-%
-if strcmp(Markers.Immune,...
-        ' Image QA/QC must have one and only one "Immune" designation')
-    e{1} = ['Error in: ',uc, Markers.Immune];
+    e{1} = ['Error in: ',uc, ' check MergeConfig files.'];
     disp(e{1});
     return
 end
@@ -95,15 +96,15 @@ end
 if isempty(gcp('nocreate'))
     try
         numcores = feature('numcores');
-        if numcores > 12
-            numcores = numcores/2;
+        if numcores > 6
+            numcores = 6;
         end
         evalc('parpool("local",numcores)');
     catch
         try
             numcores = feature('numcores');
-            if numcores > 12
-                numcores = numcores/2;
+            if numcores > 6
+                numcores = 6;
             end
             evalc('parpool("BG1",numcores)');
         catch
@@ -147,7 +148,7 @@ try
         %
         mkindvphenim(s{i2},mycol{i2},imageid{i2},imc,simage, Markers, ima);
         mkexprim(mycol{i2},imageid{i2},imc, Markers, ima)
-        %
+        %i
     end
 catch
     e{1} = ['Error in: ', uc, '; intial image output failed for Image QA/QC'];
@@ -163,7 +164,7 @@ tim{2} = datestr(now,'dd-mmm-yyyy HH:MM:SS');
 str1{2} = ['Creating QA/QC figure output for tissue: ',uc,'. There are ',...
     T,' hotspot fields. Printing...'];
 %disp(str1{2});
-%{
+%
 try
     %
     for i2 = 1:length(charts)
@@ -200,30 +201,34 @@ end
 %%% structure
 %% --------------------------------------------------------------
 %%
-function[Markers] = createmarks(MergeConfig)
+function [Markers, err_val] = createmarks(MergeConfig)
 %
 warning('off','MATLAB:table:ModifiedAndSavedVarnames')
+Markers = [];
 %
 try
     BIDtbl = readtable(MergeConfig);
     B = BIDtbl(:,{'Opal','Target',...
     'TargetType','CoexpressionStatus','SegmentationStatus',...
-    'SegmentationHierarchy', 'ImageQA_QC', 'NumberofSegmentations'});
+    'SegmentationHierarchy', 'ImageQA', 'NumberofSegmentations'});
 catch
+    err_val = 1;
     return
 end
 %
-% remove DAPI row
+% check table input variables
 %
-dr = strcmp(B.Opal, 'DAPI');
-B(dr,:) = [];
+[B, err_val] = checkTableVars(B);
+if ~ismember(err_val, [0,2])
+    return
+end
 %
 % start setting up Markers struct
 %
 Markers.Opals = B.Opal;
 Markers.all = B.Target;
 %
-ii = strcmp('Tumor',B.ImageQA_QC);
+ii = strcmp('Tumor',B.ImageQA);
 Markers.all_original = Markers.all;
 %
 % change Tumor marker designation to 'Tumor'
@@ -232,19 +237,19 @@ if sum(ii) == 1
     Markers.all(ii) = {'Tumor'};
     Markers.Tumor{1} = 'Tumor';
 elseif sum(ii) > 1
-    Markers.Tumor =  ' MaSS must have only one "Tumor" designation';
+    err_val = 6;
     return
 else
      Markers.Tumor{1} = '';
 end
-ii = strcmp('Immune',B.ImageQA_QC);
 %
-% change Tumor marker designation to 'Tumor'
+ii = strcmp('Immune',B.ImageQA);
 %
 if sum(ii) == 1
     Markers.Immune = Markers.all(ii);
 else
-    Markers.Immune = ' Image QA/QC must have one and only one "Immune" designation';
+    Markers.Immune = Markers.all(find(ii, 1));
+    err_val = 7;
 end
 %
 % get lineage and expression markers
@@ -263,9 +268,8 @@ if iscell(nsegs)
     nsegs = cellfun(@(x) str2double(x), nsegs, 'Uni',0);
     nsegs = cell2mat(nsegs);
 end
-if find(nsegs(~ET) ~= 1)
-     Markers.nsegs =  [' MaSS can only handle expression markers',...
-         ' with multiple segmentations'];
+if find(nsegs(~ET) > 1)
+    err_val = 7;
     return
 end
 Markers.nsegs = nsegs;
@@ -274,12 +278,11 @@ Markers.nsegs = nsegs;
 % the primary segmentation
 %
 SS = B.SegmentationStatus;
-if iscell(SS)
-    SS = cell2mat(SS);
-    SS = str2num(SS);
-end
-SS = SS(nsegs == 1);
-mn = Markers.all(nsegs == 1);
+Markers.SegStatus = SS;
+%
+ii = nsegs == 1 & ~ismember(Markers.all,Markers.expr);
+SS = SS(ii);
+mn = Markers.all(ii);
 %
 % get number of different segmentations, remove markers with multiple
 % segmentations from the contention
@@ -298,7 +301,7 @@ end
 % get coexpression status for lineage markers
 %
 CS = B.CoexpressionStatus(LT);
-ii = ~strcmp(CS,'NA');
+ii = ~strcmp(CS,'NA') | ~strcmp(CS,'NaN');
 CS = CS(ii);
 %
 % track the corresponding target
@@ -308,10 +311,6 @@ TCS = Markers.lin(ii);
 % get segmentation heirarchy
 %
 SH = B.SegmentationHierarchy;
-if ~iscell(SH)
-    SH = num2str(SH);
-    SH = cellstr(SH);
-end
 Markers.SegHie = SH(LT);
 %
 % CS that is not NA in lineage markers; find which coexpressions are
@@ -355,7 +354,7 @@ for i1 = 1:length(CS)
                 ii = strcmp(T, Markers.lin);
                 seg2 = Markers.SegHie(ii);
                 %
-                seg = max([str2num(seg1{1}),str2num(seg2{1})]);
+                seg = max([str2double(seg1{1}),str2double(seg2{1})]);
                 sego{track} = num2str(seg);
             end
         end
@@ -376,11 +375,10 @@ for i1 = 1:length(CS)
     Markers.Coex{i1} = sum(x,2);
 end
 %
+% reformat for proper dims
 %
-%
+Markers.Opals = cellfun(@str2double, Markers.Opals, 'Uni',0);
 Markers.Opals = cell2mat(Markers.Opals);
-Markers.Opals = str2num(Markers.Opals);
-%
 Markers.all = Markers.all';
 Markers.all_original = Markers.all_original';
 Markers.lin = Markers.lin';
@@ -389,8 +387,110 @@ Markers.nsegs = Markers.nsegs';
 Markers.seg = Markers.seg';
 Markers.altseg = Markers.altseg';
 Markers.SegHie = Markers.SegHie';
+%
 end
-
+%% function: checkTableVars
+%% --------------------------------------------------------------
+%% Created by: Benjamin Green - Johns Hopkins - 07/07/2020
+%% --------------------------------------------------------------
+%% Description
+% checks that the table input is correct 
+%% --------------------------------------------------------------
+%%
+function [B, err_val] = checkTableVars(B)
+%%
+% check the table variables to be sure they are in the correct format for
+% the code. If they are not convert them.
+%%
+%
+err_val = 0;
+%
+% check the data type for Opal column
+%
+if isa(B.Opal,'double')
+   %
+   % if B.Opal is a 'double' convert to a string 
+   %
+   tmpopal = num2cell(B.Opal);
+   tmpopal = cellfun(@(x) num2str(x), tmpopal, 'Uni', 0);
+   ii = strcmp(tmpopal, 'NaN');
+   %
+   if sum(ii) > 1
+      err_val = 2;
+      ii = find(ii,1);
+   end
+   %
+   tmpopal(ii) = {'DAPI'};
+   B.Opal = tmpopal;
+end
+%
+if ~isa(B.Opal, 'cell')
+  err_val = 3;
+  return
+end
+%
+% check the data type for the coexpression status column
+%
+if isa(B.CoexpressionStatus,'double')
+   %
+   % if B.Opal is a 'double' convert to a string 
+   %
+   tmpCS = num2cell(B.CoexpressionStatus);
+   tmpCS = cellfun(@(x) num2str(x), tmpCS, 'Uni', 0);
+   %
+   for i1 = 1:length(tmpCS)
+       tmpCS_n = tmpCS{i1};
+       if length(tmpCS_n) > 3
+           ii = 3:3:length(tmpCS_n) - 1;
+           t(1:length(tmpCS_n)) = char(0);
+           t(ii) = ',';
+           tmpCS_n = [tmpCS_n;t];
+           tmpCS_n = reshape(tmpCS_n(tmpCS_n ~= 0),1,[]);
+           tmpCS{i1} = tmpCS_n;
+       end
+   end
+   %
+   B.CoexpressionStatus = tmpCS;
+   %
+end
+%
+B.CoexpressionStatus = cellfun(@(x) replace(x, ',',''),...
+      B.CoexpressionStatus, 'Uni',0);
+%
+if ~isa(B.Opal, 'cell')
+    err_val = 4;
+end
+%
+% remove the DAPI row
+%
+dr = strcmp(B.Opal, 'DAPI');
+if sum(dr) ~= 1
+    err_val = 5;
+end
+B(dr,:) = [];
+%
+% check the last 3 columns are all set as numeric
+%
+SS = B.SegmentationStatus;
+if iscell(SS)
+    %SS = cell2mat(SS);
+    B.SegmentationStatus = str2double(SS);
+end
+%
+SH = B.SegmentationHierarchy;
+if ~iscell(SS)
+    SH = num2str(SH);
+    SH = cellstr(SH);
+    B.SegmentationHierarchy = SH;
+end
+%
+SS = B.NumberofSegmentations;
+if iscell(SS)
+    %SS = cell2mat(SS);
+    B.NumberofSegmentations = str2double(SS);
+end
+%
+end
 %% mkpaths
 %% --------------------------------------------------------------
 %% Created by: Benjamin Green - Johns Hopkins - 01/03/2018
@@ -699,34 +799,37 @@ end
 %
 % colors
 %
-if size(imc,2) == 8
-    %%blue%green%yellow%red%orange%cyan%magenta%black%%
-    mycol.all = [0 0 1;
+if size(imc,2) <= 8
+    %%blue%green%yellow%red%orange%cyan%magenta%black%% blue and black
+    %%added after
+    mycolab = [0 1 0;
+        1 0 0;
+        1 1 0;
+        0.91 0.41 0.17;
+        0 1 1;
+        1 0 1;];
+    %
+elseif size(imc, 2) <= 10 && size(imc, 2) > 8
+    %%blue%coral%green%yellow%red%orange%cyan%magenta%white%black%% blue
+    %%and black added after
+    mycolab = [1 .7529 .7961;
         0 1 0;
         1 1 0;
         1 0 0;
         0.91 0.41 0.17;
         0 1 1;
         1 0 1;
-        0 0 0];
-elseif size(imc, 2) == 10
-    %%blue%coral%green%yellow%red%orange%cyan%magenta%white%black%%
-    mycol.all = [0 0 1;
-        1 .502 .502
-        0 1 0;
-        1 1 0;
-        1 0 0;
-        0.91 0.41 0.17;
-        0 1 1;
-        1 0 1;
-        1 1 1;
-        0 0 0];
+        1 1 1;];
 else
     n = num2str(size(imc, 2) - 1);
     error(['Error in ImageLoop > mkimageid: \n'...
         'Need to add color values for ',n,...
         ' color panel to mkimageid function in the ImageLoop at line 98'], class(n));
 end
+%
+mycol.all = [0 0 1;
+    mycolab(1:size(imc,2)-2, :);
+    0 0 0];
 %
 % lineage marker colors only
 %
@@ -1164,6 +1267,8 @@ for M = 1:length(Image.all_lineages)
     %
     [im_lineage_dapi_color, im_lineage_nodapi_color] = ...
         prepimages(im_lineage_dapi, cc, imageid.size, scol, seg);
+    [im_lineage_dapi_color_noseg, im_lineage_nodapi_color_noseg] = ...
+        prepimages(im_lineage_dapi, cc, imageid.size, scol, []);
     %
     % get the locations of the positive cells
     %
@@ -1180,7 +1285,8 @@ for M = 1:length(Image.all_lineages)
         % create single color image for phenotyped image with dapi
         %
         create_color_images(im_lineage_dapi_color, imageid.outABlin{M},...
-            Image,im_full_color,data, d.fig, im_lineage_nodapi_color)
+            Image,im_full_color,data, d.fig, im_lineage_nodapi_color,...
+            im_lineage_dapi_color_noseg,im_lineage_nodapi_color_noseg)
         %
         % make images for expression marker & lineage coexpression
         %
@@ -1201,14 +1307,17 @@ for M = 1:length(Image.all_lineages)
                 %
                 ly = expr.layers(t);
                 ime = im(:,ly);
-                imel = [im_lineage_dapi,ime];
+                imela = [im_lineage_dapi,ime];
                 cc1 = [cc; mycol.all(ly,:)];
                 %
                 [imel, imelnd] = ...
-                    prepimages(imel, cc1, imageid.size, scol, seg);
+                    prepimages(imela, cc1, imageid.size, scol, seg);
+                [imel_noseg, imelnd_noseg] = ...
+                    prepimages(imela, cc1, imageid.size, scol, []);
                 %
                 create_color_images(imel, [imageid.outABcoex{M},...
-                    expr.namtypes{t}], Image,im_full_color,data, d.fig, imelnd);
+                    expr.namtypes{t}], Image,im_full_color,data, d.fig,...
+                    imelnd, imel_noseg, imelnd_noseg);
             end
         end
     end
@@ -1312,17 +1421,9 @@ end
 %% ---------------------------------------------
 %%
 function create_color_images(im, imageidout, Image,...
-    im_full_color,data, d, im_nodapi)
+    im_full_color,data, d, im_nodapi, im_dapi_noseg, im_nodapi_noseg)
 %
-Image.image = insertMarker(im,data.xy,'+','color','white','size',1);
-iname = [imageidout,'single_color_expression_image.tif'];
-write_image(iname,Image.image,Image)
-%
-% create full color image for phenotyped image with dapi
-%
-imp = insertMarker(im_full_color,data.xy,'+','color','white','size',1);
-iname = [imageidout,'full_color_expression_image.tif'];
-write_image(iname,imp,Image)
+stypes = {'','_no_seg'};
 %
 % get the data sample
 %
@@ -1330,23 +1431,51 @@ data.neg = d(~data.ii,:);
 if height(data.neg) > 25
     data.neg =  datasample(data.neg,25,1,'Replace',false);
 end
-if height(data.pos) > 25 
+if height(data.pos) > 25
     data.pos = datasample(data.pos,25,1,'Replace',false);
 end
-%
-% Create the Image Mosiacs for local positive images with dapi
-%
 data.mos = cat(1,data.pos,data.neg);
-Image.x = data.mos.CellXPos;
-Image.y = data.mos.CellYPos;
-Image.imname = [imageidout,'cell_stamp_mosiacs_pos_neg.tif'];
-makemosaics(Image)
 %
-% Create the Image Mosiacs for local positive images without dapi
+for i1 = 1:2
+    stype = stypes{i1};
+    %
+    if i1 == 1
+        ims = im;
+    else
+        ims = im_dapi_noseg;
+    end
+    %
+    Image.image = insertMarker(ims, data.xy,'+','color','white','size',1);
+    iname = [imageidout,'single_color_expression_image',stype,'.tif'];
+    write_image(iname,Image.image,Image)
+    %
+    % Create the Image Mosiacs for local positive images with dapi
+    %
+    
+    Image.x = data.mos.CellXPos;
+    Image.y = data.mos.CellYPos;
+    Image.imname = [imageidout,'cell_stamp_mosiacs_pos_neg',stype,'.tif'];
+    makemosaics(Image)
+    %
+    if i1 == 1
+        ims = im_nodapi;
+    else
+        ims = im_nodapi_noseg;
+    end
+    %
+    % Create the Image Mosiacs for local positive images without dapi
+    %
+    Image.image = insertMarker(ims,data.xy,'+','color','white','size',1);
+    Image.imname = [imageidout,'cell_stamp_mosiacs_pos_neg_no_dapi',stype,'.tif'];
+    makemosaics(Image)
+    %
+end
 %
-Image.image = insertMarker(im_nodapi,data.xy,'+','color','white','size',1);
-Image.imname = [imageidout,'cell_stamp_mosiacs_pos_neg_no_dapi.tif'];
-makemosaics(Image)
+% create full color image for phenotyped image with dapi
+%
+imp = insertMarker(im_full_color,data.xy,'+','color','white','size',1);
+iname = [imageidout,'full_color_expression_image',stype,'.tif'];
+write_image(iname,imp,Image)
 %
 end
 %% write_image
@@ -1457,11 +1586,16 @@ function mkexprim(mycol,imageid,im, Markers, im_full_color)
 %
 for t = 1:length(expr.namtypes)
     %
+    if (width(d2{t}) ~= 7)
+        continue
+    end
+    %
+    %
     % put image together fused for expr, dapi, segmentation
     %
     ly = expr.layer(t);
     %
-    ime = [im(:,1),im(:,ly)];
+    imea = [im(:,1),im(:,ly)];
     cc = [mycol.all(1,:); 1 1 1];
     %
     seg = ims(:,t);
@@ -1472,7 +1606,9 @@ for t = 1:length(expr.namtypes)
     % ---------------------------------------------------------------------
 
     [ime, imend] = ...
-        prepimages(ime, cc, imageid.size, scol, seg);
+        prepimages(imea, cc, imageid.size, scol, seg);
+    [ime_noseg, imend_noseg] = ...
+        prepimages(imea, cc, imageid.size, scol, []);
     %
     % get the positive cells
     %
@@ -1490,7 +1626,8 @@ for t = 1:length(expr.namtypes)
     if height(data.pos) > 1
         %
         create_color_images(ime, imageid.outABexpr{t},...
-            Image,im_full_color, data, d2{t}, imend);
+            Image,im_full_color, data, d2{t}, imend, ...
+            ime_noseg, imend_noseg);
         %
     end
 end
@@ -1567,6 +1704,8 @@ for i1 = 1:length(xy_expr)
                 break
             end
         end
+    elseif length(idx) == 0
+        continue
     else
         c_seg = seg_types{idx};
     end
