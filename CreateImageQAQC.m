@@ -164,7 +164,7 @@ tim{2} = datestr(now,'dd-mmm-yyyy HH:MM:SS');
 str1{2} = ['Creating QA/QC figure output for tissue: ',uc,'. There are ',...
     T,' hotspot fields. Printing...'];
 %disp(str1{2});
-%
+%{
 try
     %
     for i2 = 1:length(charts)
