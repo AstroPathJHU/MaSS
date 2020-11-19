@@ -2,91 +2,96 @@
 %% --------------------------------------------------------------
 %% Created by: Benjamin Green - Johns Hopkins - 01/03/2018
 %% --------------------------------------------------------------
-%% Description
-%%% Create QC/QA Images for top 20 CD8 density fields of a case
+%% Description:
+%%% Create QC/QA Images for top 20 CD8 density fields of a case. Additional
+%%% details located at the github repo: https://github.com/AstropathJHU/MaSS
+%% --------------------------------------------------------------
+%% Input:
+%%% wd: working directory should contain the following subfolders
+%%%     + Component_Tiffs
+%%%     + Phenotyped
+%%%     | - + ABX1
+%%%     | - + ABX2
+%%%     | - + ABXN... (a single folder for the antibody output from inForm)
+%%%     | - + Results
+%%%     | - - + Tables (the 'cleaned_phenotype_table.csv' files after merging by MaSS)
+%%%     | - - + tmp_ForFiguresTables (.mat files created by MaSS corresponding to the
+%%%         tables which meet the 600 cell \ 60 tumor cell criteria (if no tumor
+%%%         marker only former criteria must be met)
+%%% uc: sample name (only used in logging)
+%%% MergeConfig: full path to the merge configuration file
+%%% logstring: the intial portion of the logstring (project;cohort;)
+%%% allimages: optional arguement; 0 (default) or #; do the image subset
+%%%         or the whole image set
+%%%
+%% --------------------------------------------------------------
+%% Usage:
+%%% CreateImageQAQC(wd, uc, MergeConfig, logstring, [allimages])
+%%% wd = '\\bki03\Clinical_Specimen_4\PZ1\inform_data'
+%%% uc = 'PZ1';
+%%% MergeConfig = '\\bki03\Clinical_Specimen_4\Batch\MergeConfig_01.xlsx'
+%%% logstring = '1;2;'
+%%% allimages = 0;
+%%%
+%% --------------------------------------------------------------
+%% Output: 
+%% described on the github repo: https://github.com/AstropathJHU/MaSS
+%% --------------------------------------------------------------
+%% License: 
+% Copyright (c) 2019 Benjamin Green, Alex Szalay.
+% Permission is hereby granted, free of charge, to any person obtaining a 
+% copy of this software and associated documentation files (the "Software"),
+% to deal in the Software without restriction, including without limitation 
+% the rights to use, copy, modify, merge, publish, distribute, sublicense, 
+% and/or sell copies of the Software, and to permit persons to whom the 
+% Software is furnished to do so, subject to the following conditions:
+
+% The above copyright notice and this permission notice shall be included 
+% in all copies or substantial portions of the Software.
+
+% THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS 
+% OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF 
+% MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
+% IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY 
+% CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, 
+% TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE 
+% SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 %% --------------------------------------------------------------
 %%
-function [T] = CreateImageQAQC(wd,uc,MergeConfig)
+function CreateImageQAQC(wd, uc, MergeConfig, logstring, allimages)
 %
-% run image loop for sname in uc
-%
-[T,e,tim,str1] = imageloop(wd,uc,MergeConfig);
-%
-% create a logfile
-%
-logf = [wd,'\Results\QA_QC\ImageQA_QCLog.txt'];
-%
-% create first line of file
-%
-tim1 = tim{1};
-%
-str = ['Image QA/QC output started - ',tim1,'\r\n'];
-%
-if ~isempty(e{1})
-    str = [str,e{1},'\r\n'];
-end
-if ~isempty(tim{1}) && isempty(e{1})
-    tim1 = tim{2};
-    str = [str,str1{1},'\r\n        Finished - ',tim1,'\r\n'];
+version = '1.00.0001';
+if nargin < 4
+    logstring = '';
 end
 %
-if ~isempty(tim{2}) && isempty(e{1})
-    tim1 = tim{3};
-    str = [str, str1{2},'\r\n        Finished - ',tim1,'\r\n'];
+doseg = 1; %option whether or not to generate images with segmentation maps
+%
+err_val = mywritetolog(wd, uc, logstring, '', 1, version);
+e_code = err_handl(wd, uc, logstring, [], err_val);
+if e_code == 1
+    return
 end
 %
-dt = datestr(now,'dd-mmm-yyyy HH:MM:SS');
-str = [str,'Image QA/QC output complete - ', dt,'\r\n'];
-%
-% now write out the string
-%
-if ~exist([wd,'\Results\QA_QC'],'dir')
-    mkdir([wd,'\Results\QA_QC'])
-end
-%
-fileID = fopen(logf,'wt');
-fprintf(fileID,str);
-fclose(fileID);
-%
-end
-%% imageloop
-%% --------------------------------------------------------------
-%% Created by: Benjamin Green - Johns Hopkins - 01/03/2018
-%% --------------------------------------------------------------
-%% Description
-%%%  Loop through all images with proper error handling
-%% --------------------------------------------------------------
-%%
-%% imageloop
-%% --------------------------------------------------------------
-%% Created by: Benjamin Green - Johns Hopkins - 01/03/2018
-%% --------------------------------------------------------------
-%% Description
-%%%  Loop through all images with proper error handling
-%% --------------------------------------------------------------
-%%
-function [T,e,tim,str1] = imageloop(wd,uc,MergeConfig)
-%
-tim = cell(3,1);
-tim{1} = datestr(now,'dd-mmm-yyyy HH:MM:SS');
-e = cell(1,1);
-str1 = cell(2,1);
-T = [];
+% get Markers structure
 %
 try
-    Markers = createmarks(MergeConfig);
+    err_str = 'parsing MergeConfig file';
+    mywritetolog(wd, uc, logstring, err_str, 2);
+    %    
+    [Markers, err_val] = createmarks(MergeConfig);
+    %
+    e_code = err_handl(wd, uc, logstring, Markers, err_val);
+    if e_code == 1
+        return
+    end
+    %
 catch
-    e{1} = ['Error in: ',uc, ' check Batch ID files.'];
-    disp(e{1});
+    err_val = 8;
+    err_handl(wd, uc, logstring, [], err_val);
     return
 end
 %
-if strcmp(Markers.Immune,...
-        ' Image QA/QC must have one and only one "Immune" designation')
-    e{1} = ['Error in: ',uc, Markers.Immune];
-    disp(e{1});
-    return
-end
 %
 % start the parpool if it is not open;
 % attempt to open with local at max cores, if that does not work attempt
@@ -95,73 +100,269 @@ end
 if isempty(gcp('nocreate'))
     try
         numcores = feature('numcores');
-        if numcores > 12
-            numcores = numcores/2;
+        if numcores > 6
+            numcores = 6; %#ok<NASGU>
         end
         evalc('parpool("local",numcores)');
     catch
-        try
-            numcores = feature('numcores');
-            if numcores > 12
-                numcores = numcores/2;
-            end
-            evalc('parpool("BG1",numcores)');
-        catch
+        err_val = 10;
+        e_code = err_handl(wd, uc, logstring, Markers, err_val);
+        if e_code == 1
+            return
         end
     end
 end
 %
+% make the paths and select the hotspot charts
+%
+if nargin < 5
+    allimages = 0;
+end
+%
 try
-    [charts, e{1}] = mkpaths(Markers,wd);
+    err_str = 'determining hotspot images';
+    mywritetolog(wd, uc, logstring, err_str, 2);
+    %
+    [charts, err_val] = mkpaths(Markers, wd, allimages, doseg);
+    %
+    e_code = err_handl(wd, uc, logstring, Markers, err_val);
+    if e_code == 1
+        return
+    end
+    %
 catch
-    e{1} = ['Error in: ', uc, '; Error in tmp_ForFiguresTables for Image QA/QC'];
-    disp(e{1})
+    err_val = 11;
+    err_handl(wd, uc, logstring, [], err_val);
     return
 end
 %
-if ~isempty(e{1})
-    disp({1})
+try 
+    err_str = ['creating output for ', num2str(length(charts)),' fields'];
+    mywritetolog(wd, uc, logstring, err_str, 2);
+    %
+    err_val = imageloop(wd, uc, logstring, Markers, charts, doseg);
+    e_code = err_handl(wd, uc, logstring, Markers, err_val);
+    if e_code == 1
+        return
+    end
+    %
+catch
+    err_val = 14;
+    err_handl(wd, uc, logstring, Markers, err_val);
     return
 end
 %
-T = length(charts);
-T = num2str(T);
+err_str = 'CreateQAQC finished';
+mywritetolog(wd, uc, logstring, err_str, 2);
 %
-str1{1} = ['Creating QA/QC image output for tissue: ',uc,'. There are ',...
-    T,' hotspot fields. Printing...'];
+end
+% function: mywritetolog
+%% --------------------------------------------------------------
+%% Created by: Benjamin Green - Johns Hopkins - 07/07/2020
+%% --------------------------------------------------------------
+%% Description
+% create the log and output resultant error messages
+%% --------------------------------------------------------------
+%% input:
+% err_val = exit code value indicating different errors
+% loc = location in main code block of log file message
+% wd = working directory of current specimen up to inform_data\Phenotyped
+% tim = contains different file and time information
+%%
+function err_val = mywritetolog(wd, uc, logstring, err_str, locs, version)
 %
-try
-    parfor i2 = 1:length(charts)
+tim = datestr(now,'yyyy-mm-dd HH:MM:SS');
+logf = [wd,'\Phenotyped\Results\QA_QC\QA_QC.log'];
+logp = [wd,'\Phenotyped\Results\QA_QC'];
+err_val = 0;
+%
+if locs == 1
+    %
+    if exist(logp,'dir')
+        try
+            rmdir(logp,'s')
+            mkdir(logp)
+        catch
+            err_val = 9;
+            warning(['ERROR IN QA QC path:', wd,' ', uc]);
+            return
+        end
+    else
+        mkdir(logp)
+    end
+    %
+    % create first line of file
+    %
+    str = [logstring, uc, ';CreateQAQC started-v',version,';', tim, '\r\n'];
+    %
+    fileID = fopen(logf,'wt');
+    fprintf(fileID,str);
+    fclose(fileID);
+    %
+end
+%
+% for error or warning messages write the message out in the correct format
+%
+if locs == 2
+    %
+    str = [logstring, uc, ';',err_str,';', tim, '\r\n'];
+    %
+    if isfile(logf)
+        fileID = fopen(logf,'a');
+    else 
+        fileID = fopen(logf,'wt');
+    end
+    %
+    fprintf(fileID,str);
+    fclose(fileID);
+    %
+end
+%
+end
+%% function: err_handl
+%% --------------------------------------------------------------
+%% Created by: Benjamin Green - Johns Hopkins - 07/07/2020
+%% --------------------------------------------------------------
+%% Description
+% if there is an err_val that is not 0; output the corresponding message
+% and return and exit code 1 to exit MaSS (errors) 0 to keep going
+% (warnings)
+%% --------------------------------------------------------
+%%
+function e_code = err_handl(wd, sname, logstring, Markers, err_val) %#ok<INUSL>
+%
+if err_val ~= 0
+    %
+    switch err_val
+        case 1
+            err_str = ['Error: MergeConfig file not ',...
+                'found or could not be opened'];
+            e_code = 1;
+        case 2
+            err_str = ['Warning: MergeConfig file read as double ',...
+                'and two rows read as NaN. Changing first row to DAPI and ',...
+                'ignoring the second'];
+            e_code = 0;
+        case 3
+            err_str = ['Error: MergeConfig file "Opal" column could ',...
+                'not be parsed'];
+            e_code = 1;
+        case 4
+            err_str = ['Error: MergeConfig file "Coexpression" column could ',...
+                'not be parsed'];
+            e_code = 1;
+        case 5
+            err_str = ['Error: could not find DAPI row in the ',...
+                'MergeConfig file'];
+            e_code = 1;
+        case 6
+            err_str = ['Error: MergeConfig file should only contain ',...
+                'one tumor designation'];
+            e_code = 1;
+        case 7
+            err_str = ['Error: MaSS algorithm can only handle ',...
+                'expression markers with multiple segmentation ',...
+                'algorithms; check MergeCongif file'];
+            e_code = 1;
+        case 8
+            err_str = ['Error: could not parse MergeConfig files'];
+            e_code = 1;
+        case 9
+            err_str = ['Error: could not delete previous results folders.',...
+                ' Please check folder permissions and that all ',...
+                'files are closed'];
+            e_code = 1;
+        case 10
+            err_str = ['Error: could not start par pool'];
+            e_code = 1;
+        case 11
+            err_str = ['Error: could not find or open tmp_forfigurestables'];
+            e_code = 1;
+        case 12
+            err_str = ['Error: cell seg summary.txt file ',...
+                        'does not exist or is corrupt'];
+            e_code = 1;
+        case 13
+            err_str = 'Error: check binary segmentation maps contain all 4 tissue+cell layers';
+            e_code = 1;
+        case 14
+            err_str = ['Error: Could not export all QA QC images, check inForm tables'];
+            e_code = 0;
+        case 15
+            err_str = 'Error: check inForm output files';
+            e_code = 0;
+    end
+    %
+    disp([sname, ';',err_str,';'])
+    mywritetolog(wd, sname, logstring, err_str, 2);
+    %
+else
+    e_code = 0;
+end
+end
+%% imageloop
+%% --------------------------------------------------------------
+%% Created by: Benjamin Green - Johns Hopkins - 01/03/2018
+%% --------------------------------------------------------------
+%% Description
+%%%  Loop through all images with proper error handling
+%% --------------------------------------------------------------
+%%
+%% imageloop
+%% --------------------------------------------------------------
+%% Created by: Benjamin Green - Johns Hopkins - 01/03/2018
+%% --------------------------------------------------------------
+%% Description
+%%%  Loop through all images with proper error handling
+%% --------------------------------------------------------------
+%%
+function err_val = imageloop(wd, uc, logstring, Markers, charts, doseg)
+%
+err_val = 0;
+e = cell(length(charts),1);
+%
+parfor i2 = 1:length(charts)
+    log_name = extractBefore(charts(i2).name, '_cleaned');
+    try 
         %
-        % open mat lab data structure
+        %open mat lab data structure
         %
-        [s{i2},imageid{i2},mycol{i2},imc,simage] =  mkimageid(charts,i2,wd,Markers);
+        err_str = ['CreateQAQC ', log_name, ' started'];
+        mywritetolog(wd, uc, logstring, err_str, 2);
+        %
+        [s{i2}, imageid{i2}, mycol{i2}, imc, simage]...
+            =  mkimageid(charts, i2, wd, Markers, doseg); %#ok<PFOUS,PFBNS>
         s{i2}.fig.CellXPos = round(s{i2}.fig.CellXPos);
         s{i2}.fig.CellYPos = round(s{i2}.fig.CellYPos);
         %
-        % make overlayed phenotype map and save the data stucture for later
+        %make overlayed phenotype map and save the data stucture for later
         %
-        [s{i2},ima] = mkphenim(s{i2},Markers,mycol{i2},imageid{i2},imc,simage);
+        [s{i2},ima, imas] = mkphenim(s{i2}, Markers, mycol{i2},...
+            imageid{i2}, imc, simage, doseg);
         %
-        % make moscaics for expression and lineage markers
+        %make moscaics for expression and lineage markers
         %
-        mkindvphenim(s{i2},mycol{i2},imageid{i2},imc,simage, Markers, ima);
-        mkexprim(mycol{i2},imageid{i2},imc, Markers, ima)
+        mkindvphenim(...
+            s{i2}, mycol{i2}, imageid{i2},...
+            imc, simage, Markers, ima, imas);
+        mkexprim(...
+            mycol{i2}, imageid{i2}, imc, Markers, ima, imas);
         %
+        err_str = ['CreateQAQC ', log_name, ' finished'];
+        mywritetolog(wd, uc, logstring, err_str, 2);
+        e{i2} = 0;
+    catch
+        e{i2} = 1;
+        err_str = ['ERROR: CreateQAQC ', log_name, ' failed'];
+        mywritetolog(wd, uc, logstring, err_str, 2);
     end
-catch
-    e{1} = ['Error in: ', uc, '; intial image output failed for Image QA/QC'];
-    disp(e{1})
-    return
+    %
 end
-tim{2} = datestr(now,'dd-mmm-yyyy HH:MM:SS');
 %
 % make pie chart figure with heatmap
 % in a separate loop because these figures are made via matlab graphs,
 % which is not supported by parfor
 %
-str1{2} = ['Creating QA/QC figure output for tissue: ',uc,'. There are ',...
-    T,' hotspot fields. Printing...'];
 %disp(str1{2});
 %{
 try
@@ -178,16 +379,20 @@ catch
     return
 end
 %}
-tim{3} = datestr(now,'dd-mmm-yyyy HH:MM:SS');
 %
 % remove tmp_ForFiguresTables
 %
 poolobj = gcp('nocreate');
 delete(poolobj);
 %
-try
-    rmdir([wd,'\Results\tmp_ForFiguresTables'],'s');
-catch
+if any(cell2mat(e))
+    err_val = 14;
+    return
+else
+    try
+        rmdir([wd,'\Results\tmp_ForFiguresTables'],'s');
+    catch
+    end
 end
 %
 end
@@ -200,30 +405,43 @@ end
 %%% structure
 %% --------------------------------------------------------------
 %%
-function[Markers] = createmarks(MergeConfig)
+function [Markers, err_val] = createmarks(MergeConfig)
 %
 warning('off','MATLAB:table:ModifiedAndSavedVarnames')
+Markers = [];
 %
 try
     BIDtbl = readtable(MergeConfig);
     B = BIDtbl(:,{'Opal','Target',...
     'TargetType','CoexpressionStatus','SegmentationStatus',...
-    'SegmentationHierarchy', 'ImageQA_QC', 'NumberofSegmentations'});
+    'SegmentationHierarchy', 'ImageQA','Compartment',...
+    'NumberofSegmentations', 'Colors'});
 catch
+    err_val = 1;
     return
 end
 %
-% remove DAPI row
+% check table input variables
 %
-dr = strcmp(B.Opal, 'DAPI');
-B(dr,:) = [];
+[err_val, mycol] = extractcolorvec(B);
+if err_val == 3
+    err_val = 8;
+    return
+end
+%
+[B, err_val] = checkTableVars(B);
+if ~ismember(err_val, [0,2])
+    return
+end
 %
 % start setting up Markers struct
 %
 Markers.Opals = B.Opal;
 Markers.all = B.Target;
+Markers.mycol = mycol;
+Markers.Compartment = B.Compartment;
 %
-ii = strcmp('Tumor',B.ImageQA_QC);
+ii = strcmp('Tumor',B.ImageQA);
 Markers.all_original = Markers.all;
 %
 % change Tumor marker designation to 'Tumor'
@@ -232,19 +450,19 @@ if sum(ii) == 1
     Markers.all(ii) = {'Tumor'};
     Markers.Tumor{1} = 'Tumor';
 elseif sum(ii) > 1
-    Markers.Tumor =  ' MaSS must have only one "Tumor" designation';
+    err_val = 6;
     return
 else
      Markers.Tumor{1} = '';
 end
-ii = strcmp('Immune',B.ImageQA_QC);
 %
-% change Tumor marker designation to 'Tumor'
+ii = strcmp('Immune',B.ImageQA);
 %
 if sum(ii) == 1
     Markers.Immune = Markers.all(ii);
 else
-    Markers.Immune = ' Image QA/QC must have one and only one "Immune" designation';
+    Markers.Immune = Markers.all(find(ii, 1));
+    err_val = 7;
 end
 %
 % get lineage and expression markers
@@ -264,8 +482,7 @@ if iscell(nsegs)
     nsegs = cell2mat(nsegs);
 end
 if find(nsegs(~ET) > 1)
-     Markers.nsegs =  [' MaSS can only handle expression markers',...
-         ' with multiple segmentations'];
+    err_val = 7;
     return
 end
 Markers.nsegs = nsegs;
@@ -274,10 +491,6 @@ Markers.nsegs = nsegs;
 % the primary segmentation
 %
 SS = B.SegmentationStatus;
-if iscell(SS)
-    SS = cell2mat(SS);
-    SS = str2num(SS);
-end
 Markers.SegStatus = SS;
 %
 ii = nsegs == 1 & ~ismember(Markers.all,Markers.expr);
@@ -301,7 +514,7 @@ end
 % get coexpression status for lineage markers
 %
 CS = B.CoexpressionStatus(LT);
-ii = ~strcmp(CS,'NA');
+ii = ~strcmp(CS,'NA') | ~strcmp(CS,'NaN');
 CS = CS(ii);
 %
 % track the corresponding target
@@ -311,10 +524,6 @@ TCS = Markers.lin(ii);
 % get segmentation heirarchy
 %
 SH = B.SegmentationHierarchy;
-if ~iscell(SH)
-    SH = num2str(SH);
-    SH = cellstr(SH);
-end
 Markers.SegHie = SH(LT);
 %
 % CS that is not NA in lineage markers; find which coexpressions are
@@ -358,7 +567,7 @@ for i1 = 1:length(CS)
                 ii = strcmp(T, Markers.lin);
                 seg2 = Markers.SegHie(ii);
                 %
-                seg = max([str2num(seg1{1}),str2num(seg2{1})]);
+                seg = max([str2double(seg1{1}),str2double(seg2{1})]);
                 sego{track} = num2str(seg);
             end
         end
@@ -379,11 +588,10 @@ for i1 = 1:length(CS)
     Markers.Coex{i1} = sum(x,2);
 end
 %
+% reformat for proper dims
 %
-%
+Markers.Opals = cellfun(@str2double, Markers.Opals, 'Uni',0);
 Markers.Opals = cell2mat(Markers.Opals);
-Markers.Opals = str2num(Markers.Opals);
-%
 Markers.all = Markers.all';
 Markers.all_original = Markers.all_original';
 Markers.lin = Markers.lin';
@@ -392,8 +600,209 @@ Markers.nsegs = Markers.nsegs';
 Markers.seg = Markers.seg';
 Markers.altseg = Markers.altseg';
 Markers.SegHie = Markers.SegHie';
+%
 end
-
+%% function: checkTableVars
+%% --------------------------------------------------------------
+%% Created by: Benjamin Green - Johns Hopkins - 07/07/2020
+%% --------------------------------------------------------------
+%% Description
+% checks that the table input is correct 
+%% --------------------------------------------------------------
+%%
+function [B, err_val] = checkTableVars(B)
+%%
+% check the table variables to be sure they are in the correct format for
+% the code. If they are not convert them.
+%%
+%
+err_val = 0;
+%
+% check the data type for Opal column
+%
+if isa(B.Opal,'double')
+   %
+   % if B.Opal is a 'double' convert to a string 
+   %
+   tmpopal = num2cell(B.Opal);
+   tmpopal = cellfun(@(x) num2str(x), tmpopal, 'Uni', 0);
+   ii = strcmp(tmpopal, 'NaN');
+   %
+   if sum(ii) > 1
+      err_val = 2;
+      ii = find(ii,1);
+   end
+   %
+   tmpopal(ii) = {'DAPI'};
+   ss = size(tmpopal);
+   if ss(1) == 1
+       B.Opal = tmpopal';
+   else
+       B.Opal = tmpopal;
+   end
+end
+%
+if ~isa(B.Opal, 'cell')
+  err_val = 3;
+  return
+end
+%
+% check the data type for the coexpression status column
+%
+if isa(B.CoexpressionStatus,'double')
+   %
+   % if B.Opal is a 'double' convert to a string 
+   %
+   tmpCS = num2cell(B.CoexpressionStatus);
+   tmpCS = cellfun(@(x) num2str(x), tmpCS, 'Uni', 0);
+   %
+   for i1 = 1:length(tmpCS)
+       tmpCS_n = tmpCS{i1};
+       if length(tmpCS_n) > 3
+           ii = 3:3:length(tmpCS_n) - 1;
+           t(1:length(tmpCS_n)) = char(0);
+           t(ii) = ',';
+           tmpCS_n = [tmpCS_n;t];
+           tmpCS_n = reshape(tmpCS_n(tmpCS_n ~= 0),1,[]);
+           tmpCS{i1} = tmpCS_n;
+       end
+   end
+   %
+   B.CoexpressionStatus = tmpCS;
+   %
+end
+%
+B.CoexpressionStatus = cellfun(@(x) replace(x, ',',''),...
+      B.CoexpressionStatus, 'Uni',0);
+%
+if ~isa(B.Opal, 'cell')
+    err_val = 4;
+end
+%
+% remove the DAPI row
+%
+dr = strcmp(B.Opal, 'DAPI');
+if sum(dr) ~= 1
+    err_val = 5;
+end
+B(dr,:) = [];
+%
+% check the last 3 columns are all set as numeric
+%
+SS = B.SegmentationStatus;
+if iscell(SS)
+    %SS = cell2mat(SS);
+    B.SegmentationStatus = str2double(SS);
+end
+%
+SH = B.SegmentationHierarchy;
+if ~iscell(SS)
+    SH = num2str(SH);
+    SH = cellstr(SH);
+    B.SegmentationHierarchy = SH;
+end
+%
+SS = B.NumberofSegmentations;
+if iscell(SS)
+    %SS = cell2mat(SS);
+    B.NumberofSegmentations = str2double(SS);
+end
+%
+if ~iscell(B.Compartment)
+    err_val = 8;
+    return
+end
+%
+end
+%% extractcolorvec
+%% --------------------------------------------------------------
+%% Created by: Benjamin Green - Johns Hopkins - 01/03/2018
+%% --------------------------------------------------------------
+%% Description
+%%% extracts the color vector from the Colors column in the merge config 
+%%% file
+%% --------------------------------------------------------------
+%%
+function[err_val, mycol] = extractcolorvec(B)
+%
+err_val = 0;
+%
+% colors
+%
+if height(B) <= 7
+    %%blue%green%yellow%red%orange%cyan%magenta%black%%
+    mycolab = [0 1 0;
+        1 1 0;
+        1 0 0;
+        0.91 0.41 0.17;
+        0 1 1;
+        1 0 1;];
+    mycol.all = [0 0 1;
+        mycolab(1:height(B)-1, :);
+        0 0 0];
+    %
+elseif height(B) <= 10 && height(B) > 7
+    %%blue%coral%green%yellow%red%orange%cyan%magenta%white%black%%
+    mycolab = [1 .7529 .7961;
+        0 1 0;
+        1 1 0;
+        1 0 0;
+        0.91 0.41 0.17;
+        0 1 1;
+        1 0 1;
+        1 1 1;];
+    mycol.all = [0 0 1;
+        mycolab(1:height(B)-1, :);
+        0 0 0];
+    %
+else
+    mycol.all = [];
+    err_val = 1;
+    %{
+    error(['Error in ImageLoop > mkimageid: \n'...
+        'Need to add color values for ',n,...
+        ' color panel to mkimageid function'], class(n));
+    %}
+end
+%
+color_names = {'red','green','blue','cyan', ...
+    'magenta','yellow','white','black','orange','coral'};
+color_names2 = {'r','g','b','c','m','y','w','k','o','l'};
+colors = [eye(3); 1-eye(3); 1 1 1; 0 0 0; 1 .7529 .7961; 0.91 0.41 0.17;];
+%
+if isa(B.Colors, 'cell')
+    [ii,loc] = ismember(B.Colors, color_names);
+    [ii1,loc1] = ismember(B.Colors, color_names2);
+    ii = ii + ii1;
+    loc = loc + loc1;
+    %
+    if sum(ii) ~= length(B.Colors)
+        new_colors = B.Colors(~ii);
+        new_colors = replace(new_colors, {'[',']',' '},'');
+        new_colors = cellfun(@(x) strsplit(x, ','), new_colors, 'Uni', 0);
+        new_colors = cellfun(@str2double, new_colors, 'Uni', 0);
+        if any(cellfun(@length, new_colors)~=3)
+            err_val = err_val + 2;
+            return
+        end
+        new_colors = cell2mat(new_colors);
+        if any(new_colors > 255)
+            err_val = err_val + 2;
+            return
+        end
+        loc(~ii) = (length(colors) + 1):...
+            ((length(colors)) + (length(B.Colors) - sum(ii)));
+        colors = [colors;new_colors];
+    end
+    %
+    mycol.all = [colors(loc,:); 0, 0, 0];
+    %
+else
+    err_val = err_val + 2;
+    return
+end
+%
+end
 %% mkpaths
 %% --------------------------------------------------------------
 %% Created by: Benjamin Green - Johns Hopkins - 01/03/2018
@@ -403,16 +812,13 @@ end
 %%% and create the paths necessary for the rest of the code
 %% --------------------------------------------------------------
 %%
-function [charts1,e] = mkpaths(Markers,wd)
+function [charts1, e] = mkpaths(Markers, wd, allimages, doseg)
 %
-e = [];
+e = 0;
 %
 % Remove any old ByImage directory
 %
-m{1} = [wd,'\Results\QA_QC'];
-if exist(m{1},'dir')
-    rmdir(m{1},'s')
-end
+m{1} = [wd,'\Phenotyped\Results\QA_QC'];
 %
 % create new ByImage subdirectories
 %
@@ -440,70 +846,75 @@ layers = length(Markers.Opals) + 2;
 % there are more than 20 HPFs
 %
 try
-    charts = dir([wd,'\Results\tmp_ForFiguresTables\*.mat']);
+    charts = dir([wd,'\Phenotyped\Results\tmp_ForFiguresTables\*.mat']);
 catch
+    e = 11;
     return
 end
 if isempty(charts)
+    e = 11;
     return
 end
 %
 charts1 = charts;
 %
-if length(charts1) > 20
-    inc = 1;
-    while length(charts1) ~= 20 && inc <= 2
-        formatspec = strcat(repmat('%s ',[1,5]),{' '},repmat('%f32 ',[1,10]),...
-            { ' %s '},repmat('%f32 ',[1,5]),{' '},repmat('%f32 ',[1,5*layers]),...
-            { ' %s '},repmat('%f32 ',[1,5]),{' '},repmat('%f32 ',[1,5*layers]),...
-            { ' %s '},repmat('%f32 ',[1,5]),{' '},repmat('%f32 ',[1,5*layers]),...
-            { ' %s '},repmat('%f32 ',[1,4]),{' '},repmat('%f32 ',[1,5*layers]),...
-            {' '},repmat('%s ',[1,2]),{' '}, repmat('%f32 ',[1,4]),{' '}, ....
-            repmat('%s ',[1,2]));
-        formatspec = formatspec{1};
-        %
-        fd = [wd,'\Results\tmp_ForFiguresTables'];
-        nms = {charts(:).name};
-        query3 = cell(1,length(charts));
-        query2 = cell(1,length(charts));
-        parfor i2 = 1:length(charts)
-            nm = nms{i2};
-            [query2{i2},query3{i2}] = delextrfields(fd,nm,wd,Markers,...
-                formatspec,inc);
+try 
+    if length(charts1) > 20 && ~allimages
+        inc = 1;
+        while length(charts1) ~= 20 && inc <= 2
+            formatspec = strcat(repmat('%s ',[1,5]),{' '},repmat('%f32 ',[1,10]),...
+                { ' %s '},repmat('%f32 ',[1,5]),{' '},repmat('%f32 ',[1,5*layers]),...
+                { ' %s '},repmat('%f32 ',[1,5]),{' '},repmat('%f32 ',[1,5*layers]),...
+                { ' %s '},repmat('%f32 ',[1,5]),{' '},repmat('%f32 ',[1,5*layers]),...
+                { ' %s '},repmat('%f32 ',[1,4]),{' '},repmat('%f32 ',[1,5*layers]),...
+                {' '},repmat('%s ',[1,2]),{' '}, repmat('%f32 ',[1,4]),{' '}, ....
+                repmat('%s ',[1,2]));
+            formatspec = formatspec{1};
+            %
+            fd = [wd,'\Phenotyped\Results\tmp_ForFiguresTables'];
+            nms = {charts(:).name};
+            query3 = cell(1,length(charts));
+            query2 = cell(1,length(charts));
+            parfor i2 = 1:length(charts)
+                nm = nms{i2};
+                [query2{i2},query3{i2}] = delextrfields(fd,nm,wd,Markers,...
+                    formatspec,inc);
+            end
+            %
+            query2 = [query2{:}];
+            query3 = [query3{:}];
+            %
+            query3 = query3(query2);
+            charts1 = charts(query2);
+            %
+            [~,query4] = sort(query3,2,'descend');
+            if length(query4) < 20
+                a = query4(1:end);
+            else
+                a = query4(1:20);
+            end
+            %
+            charts1 = charts1(a);
+            inc = inc + .25;
         end
-        %
-        query2 = [query2{:}];
-        query3 = [query3{:}];
-        %
-        query3 = query3(query2);
-        charts1 = charts(query2);
-        %
-        [~,query4] = sort(query3,2,'descend');
-        if length(query4) < 20
-            a = query4(1:end);
-        else
-            a = query4(1:20);
-        end
-        %
-        charts1 = charts1(a);
-        inc = inc + .25;
     end
+catch
+    e = 12;
+    return
 end
 %
 % check segmentation
 %
-if ~isempty(charts1)
+if ~isempty(charts1) && doseg
     nm = extractBefore(charts(1).name,'cleaned_phenotype');
     %
     % get 1ry segmentation and see if it has proper layers
     %
-    wd1 = [wd,'\',Markers.seg{1},'\'];
+    wd1 = [wd,'\Phenotyped\',Markers.seg{1},'\'];
     iname = [wd1,nm,'binary_seg_maps.tif'];
     props = imfinfo(iname);
     if length(props) < 4
-        e = ['Error in ', uc,...
-            ': check binary segmentation maps',...
-            ' in ',Markers.seg{1}];
+        e = 13;
         return
     end
     %
@@ -512,13 +923,11 @@ if ~isempty(charts1)
     if ~isempty(Markers.altseg)
         for i1 = 1:length(Markers.altseg)
             mark = Markers.altseg{i1};
-            wd1 = [wd,'\',mark,'\'];
+            wd1 = [wd,'\Phenotyped\',mark,'\'];
             iname = [wd1,nm,'binary_seg_maps.tif'];
             props = imfinfo(iname);
             if length(props) < 4
-                e = ['Error in ', uc,...
-                    ': check binary segmentation maps',...
-                    ' in ',mark];
+                e = 13;
                 return
             end
         end
@@ -540,7 +949,7 @@ function[query2, query3] = delextrfields(fd,nm,wd,Markers,formatspec,inc)
 %
 fname = [fd,'\',nm];
 fid = extractBefore(nm,'cleaned_phenotype_table');
-fname2 =  [wd,'\',Markers.seg{1},'\',fid,'cell_seg_data_summary.txt'];
+fname2 =  [wd,'\Phenotyped\',Markers.seg{1},'\',fid,'cell_seg_data_summary.txt'];
 %
 % read that table in
 %
@@ -585,7 +994,8 @@ end
 %%% creates variables for a single image
 %% --------------------------------------------------------------
 %%
-function [q,imageid, mycol,imc,simage] = mkimageid(charts,inum,wd,Markers)
+function [q, imageid, mycol, imc, simage] =...
+    mkimageid(charts, inum, wd, Markers, doseg)
 %
 % set image output properties
 %
@@ -609,6 +1019,8 @@ nc = [charts(inum).folder,'\',charts(inum).name];
 q = load(nc);
 q = q.fData;
 q.fname = charts(inum);
+q.fig.CellXPos = q.fig.CellXPos + 1;
+q.fig.CellYPos = q.fig.CellYPos + 1;
 %
 % some image designations
 %
@@ -617,27 +1029,27 @@ imageid.id = extractBefore(q.fname.name,'cleaned_phenotype_table.mat');
 %
 % write out Tables that comes from this image
 %
-writetable(q.fig,[wd,'\Results\QA_QC\Tables_QA_QC\',...
+writetable(q.fig,[wd,'\Phenotyped\Results\QA_QC\Tables_QA_QC\',...
     erase(q.fname.name,'.mat'),'.csv']);
 %
 % image input fname for segmentation images
 %
-sim{1} = [wd,'\',Markers.seg{1},'\',imageid.id];
+sim{1} = [wd,'\Phenotyped\',Markers.seg{1},'\',imageid.id];
 for i1 = 1: length(Markers.altseg)
-    sim{i1+1} = [wd,'\',Markers.altseg{i1},'\',imageid.id];
+    sim{i1+1} = [wd,'\Phenotyped\',Markers.altseg{i1},'\',imageid.id];
 end
 %
 % image output fname for the full Marker images
 %
 imageid.outfull = [wd,...
-    '\Results\QA_QC\Phenotype\All_Markers\',imageid.id];
+    '\Phenotyped\Results\QA_QC\Phenotype\All_Markers\',imageid.id];
 %
 % image output fname for lineage markers
 %
 for i1 = 1:length(Markers.lin)
     imageid.outABlin{i1} = [wd,...
-        '\Results\QA_QC\Phenotype\',Markers.lin{i1},'\',imageid.id];
-    imageid.outABcoex{i1} = [wd,'\Results\QA_QC\Lin&Expr_Coex\',...
+        '\Phenotyped\Results\QA_QC\Phenotype\',Markers.lin{i1},'\',imageid.id];
+    imageid.outABcoex{i1} = [wd,'\Phenotyped\Results\QA_QC\Lin&Expr_Coex\',...
         Markers.lin{i1},'\',imageid.id];
 end
 %
@@ -645,9 +1057,9 @@ end
 % image output fname for expression marker coexpression on lineage markers
 %
 for i2 = 1:length(Markers.add)
-    imageid.outABlin{i1+1} = [wd,'\Results\QA_QC\Phenotype\',...
+    imageid.outABlin{i1+1} = [wd,'\Phenotyped\Results\QA_QC\Phenotype\',...
         Markers.add{i2},'\',imageid.id];
-    imageid.outABcoex{i1+1} = [wd,'\Results\QA_QC\Lin&Expr_Coex\',...
+    imageid.outABcoex{i1+1} = [wd,'\Phenotyped\Results\QA_QC\Lin&Expr_Coex\',...
         Markers.add{i2},'\',imageid.id];
     i1 = i1+1;
 end
@@ -655,7 +1067,7 @@ end
 % image output fname for expression markers
 %
 for i1 = 1: length(Markers.expr)
-    imageid.outABexpr{i1} = [wd,'\Results\QA_QC\Phenotype\',...
+    imageid.outABexpr{i1} = [wd,'\Phenotyped\Results\QA_QC\Phenotype\',...
         Markers.expr{i1},'\',imageid.id];    
 end
 ii = ismember(Markers.all, Markers.expr);
@@ -669,7 +1081,7 @@ if idx
         cidx = idx(i1);
         for i2 = 2:Markers.nsegs(cidx)
             idx_count = idx_count + 1;
-            str = [wd,'\Results\QA_QC\Phenotype\',...
+            str = [wd,'\Phenotyped\Results\QA_QC\Phenotype\',...
                 Markers.all{cidx},'_',num2str(i2)];
             if ~exist(str, 'dir')
                 mkdir(str);
@@ -682,7 +1094,7 @@ end
 %
 % fname for the component_Tiff image
 %
-iname = [erase(wd,'Phenotyped'),'Component_Tiffs\',...
+iname = [wd,'\Component_Tiffs\',...
     imageid.id,'component_data.tif'];
 %
 % read in all component images
@@ -693,44 +1105,14 @@ imageid.size = [props(1).Height, props(1).Width];
 imageid.ds.ImageLength = props(1).Height;
 imageid.ds.ImageWidth = props(1).Width;
 %
-for i2 = 1:length(props)
+for i2 = 1:8
     if strcmp(props(i2).ColorType, 'grayscale')
         im(:,1) = reshape(imread(iname,i2),[],1);
         imc(:,i2) =(im(:,1)./max(im(:,1)));
     end
 end
 %
-% colors
-%
-if size(imc,2) <= 8
-    %%blue%green%yellow%red%orange%cyan%magenta%black%%
-    mycolab = [0 1 0;
-        1 1 0;
-        1 0 0;
-        0.91 0.41 0.17;
-        0 1 1;
-        1 0 1;];
-    %
-elseif size(imc, 2) <= 10 && size(imc, 2) > 8
-    %%blue%coral%green%yellow%red%orange%cyan%magenta%white%black%%
-    mycolab = [1 .7529 .7961;
-        0 1 0;
-        1 1 0;
-        1 0 0;
-        0.91 0.41 0.17;
-        0 1 1;
-        1 0 1;
-        1 1 1;];
-else
-    n = num2str(size(imc, 2) - 1);
-    error(['Error in ImageLoop > mkimageid: \n'...
-        'Need to add color values for ',n,...
-        ' color panel to mkimageid function in the ImageLoop at line 98'], class(n));
-end
-%
-mycol.all = [0 0 1;
-    mycolab(1:size(imc,2)-2, :);
-    0 0 0];
+mycol.all = Markers.mycol.all;
 %
 % lineage marker colors only
 %
@@ -746,58 +1128,63 @@ mycol.expr = mycol.expr(expr,:);
 %
 %%%segmentation images%%%
 %
-%
-% get rows from each alternative segmentation in the main table
-%
-trows = false(height(q.fig),length(Markers.altseg));
-for i1 = 1:length(Markers.altseg)
-    trows(:,i1) = strcmp(q.fig.Phenotype,Markers.altseg{i1});
-    cellnums = double(q.fig.CellNum(trows(:,i1)));
+if doseg
     %
-    % read in alternative segmentations; this only works if there is tissue
-    % segmentation and nuclear segmentation in the binary_seg image;
-    % cytoplasm
+    % get rows from each alternative segmentation in the main table
     %
-    s1 = imread([sim{i1 + 1},'binary_seg_maps.tif'], 4);
+    trows = false(height(q.fig),length(Markers.altseg));
+    for i1 = 1:length(Markers.altseg)
+        trows(:,i1) = strcmp(q.fig.Phenotype,Markers.altseg{i1});
+        cellnums = double(q.fig.CellNum(trows(:,i1)));
+        %
+        % read in alternative segmentations; this only works if there is 
+        % tissue segmentation and nuclear segmentation in the 
+        % binary_seg image; cytoplasm
+        %
+        s1 = imread([sim{i1 + 1},'binary_seg_maps.tif'], 4);
+        %
+        % set cell labels of segmentation image that are not 
+        % in the main table to zero
+        %
+        s1(~ismember(double(s1),cellnums)) = 0;
+        %
+        s1 = reshape(s1,[],1);
+        simage3{i1 + 1} = s1;
+    end
     %
-    % set cell labels of segmentation image that are not in the main table
-    % to zero
+    % get every row for alternative segmentation in the main table
     %
-    s1(~ismember(double(s1),cellnums)) = 0;
+    trowsall = sum(trows,2) > 0;
     %
+    % read in primary segmentation image
+    %
+    s1 = imread([sim{1},'binary_seg_maps.tif'],4);
+    %
+    % get cellnums of primary segmentation data
+    % (ie data not in any alt segs)
+    %
+    cellnums = double(q.fig.CellNum(~trowsall,:));
+    %
+    s1(~ismember(double(s1),cellnums))=0;
     s1 = reshape(s1,[],1);
-    simage3{i1 + 1} = s1;
+    %
+    simage3{1} = s1;
+    %
+    % read in tissue segmentation
+    %
+    % sum the images across the segmentations to create a single unique
+    % segmentation
+    %
+    simage2 = [simage3{:}];
+    %
+    simage = sum(simage2,2);
+    %
+    simage(simage>0) = .5;
+    %
+    simage = reshape(double(simage), imageid.size);
+else
+    simage = zeros(imageid.size);
 end
-%
-% get every row for alternative segmentation in the main table
-%
-trowsall = sum(trows,2) > 0;
-%
-% read in primary segmentation image
-%
-s1 = imread([sim{1},'binary_seg_maps.tif'],4);
-%
-% get cellnums of primary segmentation data (ie data not in any alt segs)
-%
-cellnums = double(q.fig.CellNum(~trowsall,:));
-%
-s1(~ismember(double(s1),cellnums))=0;
-s1 = reshape(s1,[],1);
-%
-simage3{1} = s1;
-%
-% read in tissue segmentation
-%
-% sum the images across the segmentations to create a single unique
-% segmentation
-%
-simage2 = [simage3{:}];
-%
-simage = sum(simage2,2);
-%
-simage(simage>0) = .5;
-%
-simage = reshape(double(simage), imageid.size);
 %
 end
 %% mkphenim
@@ -808,7 +1195,8 @@ end
 %%% make the phenotype images with all the markers
 %% --------------------------------------------------------------
 %%
-function [q,fullimage] = mkphenim(q,Markers,mycol,imageid,image,simage)
+function [q, fullimage, fullimages] = ...
+    mkphenim(q, Markers, mycol, imageid, image, simage, doseg)
 tp2 = q.fig;
 % create composite image
 image = image * (mycol.all * 255);
@@ -862,6 +1250,7 @@ writeDirectory(T)
 close(T)
 %
 fullimage = imp;
+fullimages = imp;
 %
 % add circles for lineage markers
 %
@@ -1089,24 +1478,31 @@ close(T)
 %
 % add segmentation
 %
-imp = reshape(imp,[],3);
-ss = reshape(simage,[],1);
-ss = find(ss>0);
-imp(ss,:) = repmat([255/.75 0 0],length(ss),1);
-%
-imp = reshape(imp,[imageid.size, 3]);
-%
-% rewrite legend over segmentation
-%
-imp = insertText(imp,position,marksa,'BoxColor',[0,0,0],...
-    'BoxOpacity',1,'FontSize',24,'TextColor', colsa);
-%
-iname = [imageid.outfull,'cleaned_phenotype_w_seg.tif'];
-T = Tiff(iname,'w');
-T.setTag(imageid.ds);
-write(T,imp);
-writeDirectory(T)
-close(T)
+if doseg
+    fullimages = reshape(fullimages,[],3);
+    imp = reshape(imp,[],3);
+    ss = reshape(simage,[],1);
+    ss = find(ss>0);
+    imp(ss,:) = repmat([255/.75 0 0],length(ss),1);
+    fullimages(ss,:) = repmat([166 0 0],length(ss),1);
+    %
+    imp = reshape(imp,[imageid.size, 3]);
+    fullimages = reshape(fullimages,[imageid.size, 3]);
+    %
+    % rewrite legend over segmentation
+    %
+    imp = insertText(imp,position,marksa,'BoxColor',[0,0,0],...
+        'BoxOpacity',1,'FontSize',24,'TextColor', colsa);
+    fullimages = insertText(fullimages,position,marksa,'BoxColor',[0,0,0],...
+        'BoxOpacity',1,'FontSize',24,'TextColor', colsa);
+    %
+    iname = [imageid.outfull,'cleaned_phenotype_w_seg.tif'];
+    T = Tiff(iname,'w');
+    T.setTag(imageid.ds);
+    write(T,imp);
+    writeDirectory(T)
+    close(T)
+end
 %
 q.fig = tp2;
 end
@@ -1119,21 +1515,16 @@ end
 %%% expressions with expression markers
 %% --------------------------------------------------------------
 %%
-function mkindvphenim(d,mycol,imageid,im,ims, Markers, im_full_color)
+function mkindvphenim(d, mycol, imageid, im,...
+    ims, Markers, im_full_color, im_full_color_seg)
 %
-[Image,expr] = getset(Markers,imageid);
+[Image,expr] = getset(Markers, imageid);
 %
 % get locations of segmentation
 %
 seg = reshape(ims,[],1);
 seg = find(seg > 0);
 scol = uint8(255 * .65);
-%
-% add segmentation to full color image
-%
-im_full_color = reshape(im_full_color,[],3);
-im_full_color(seg,:) = repmat([scol 0 0], length(seg),1);
-im_full_color = reshape(im_full_color,[imageid.size,3]);
 %
 for M = 1:length(Image.all_lineages)
     %
@@ -1155,6 +1546,7 @@ for M = 1:length(Image.all_lineages)
         %
         im_lineage_dapi = [im(:,1), im(:,EW), im(:,SW)];
         cc = [mycol.all(1,:); mycol.all(EW,:);  mycol.all(SW,:)];
+        compartment = 'NULL';
         %
     else
         %
@@ -1162,6 +1554,7 @@ for M = 1:length(Image.all_lineages)
         %
         im_lineage_dapi =[im(:,1), im(:,Image.layer(M))];
         cc = [mycol.all(1,:); 1 1 1];
+        compartment = Image.Compartment(M);
     end
     %
     % get the lineage image with and without dapi in color
@@ -1186,8 +1579,9 @@ for M = 1:length(Image.all_lineages)
         % create single color image for phenotyped image with dapi
         %
         create_color_images(im_lineage_dapi_color, imageid.outABlin{M},...
-            Image,im_full_color,data, d.fig, im_lineage_nodapi_color,...
-            im_lineage_dapi_color_noseg,im_lineage_nodapi_color_noseg)
+            Image,im_full_color, im_full_color_seg, data, d.fig, ...
+            im_lineage_nodapi_color, im_lineage_dapi_color_noseg, ...
+            im_lineage_nodapi_color_noseg, compartment)
         %
         % make images for expression marker & lineage coexpression
         %
@@ -1217,8 +1611,9 @@ for M = 1:length(Image.all_lineages)
                     prepimages(imela, cc1, imageid.size, scol, []);
                 %
                 create_color_images(imel, [imageid.outABcoex{M},...
-                    expr.namtypes{t}], Image,im_full_color,data, d.fig,...
-                    imelnd, imel_noseg, imelnd_noseg);
+                    expr.namtypes{t}], Image, im_full_color,...
+                    im_full_color_seg, data, d.fig,...
+                    imelnd, imel_noseg, imelnd_noseg, compartment);
             end
         end
     end
@@ -1241,6 +1636,7 @@ expr.namtypes = Markers.expr;
 Image.ds = imageid.ds;
 %
 [a, ~] = ismember(Markers.all, expr.namtypes);
+Image.ExprCompartment = Markers.Compartment(a);
 a = find(a) + 1;
 %
 expr.layers = a;
@@ -1248,9 +1644,11 @@ expr.layers = a;
 Image.all_lineages = [Markers.lin, Markers.add];
 %
 [a, ~] = ismember(Markers.all, Image.all_lineages);
+Image.Compartment = Markers.Compartment(a);
 a = find(a) + 1;
 %
 Image.layer = a;
+%
 end
 %% resolveMultiLin
 %% Created by: Benjamin Green
@@ -1306,7 +1704,9 @@ im_dapi = reshape(im_dapi,[im_size, 3]);
 im = im(:,2:end);
 c_map = c_map(2:end,:);
 im_nodapi = 180 * sinh(1.5 * im) * c_map;
-im_nodapi(seg,:) = repmat([scol 0 0], length(seg),1);
+if ~isempty(seg)
+    im_nodapi(seg,:) = repmat([scol 0 0], length(seg),1);
+end
 im_nodapi = uint8(im_nodapi);
 im_nodapi = reshape(im_nodapi,[im_size, 3]);
 %
@@ -1322,9 +1722,15 @@ end
 %% ---------------------------------------------
 %%
 function create_color_images(im, imageidout, Image,...
-    im_full_color,data, d, im_nodapi, im_dapi_noseg, im_nodapi_noseg)
+    im_full_color, im_full_color_seg, data, d, im_nodapi,...
+    im_dapi_noseg, im_nodapi_noseg, compartment)
 %
 stypes = {'','_no_seg'};
+if strcmp(compartment, 'Nucleus')
+    dotcolor = 'black';
+else
+    dotcolor = 'white';
+end
 %
 % get the data sample
 %
@@ -1346,7 +1752,7 @@ for i1 = 1:2
         ims = im_dapi_noseg;
     end
     %
-    Image.image = insertMarker(ims, data.xy,'+','color','white','size',1);
+    Image.image = insertMarker(ims, data.xy,'+','color',dotcolor,'size',1);
     iname = [imageidout,'single_color_expression_image',stype,'.tif'];
     write_image(iname,Image.image,Image)
     %
@@ -1366,7 +1772,7 @@ for i1 = 1:2
     %
     % Create the Image Mosiacs for local positive images without dapi
     %
-    Image.image = insertMarker(ims,data.xy,'+','color','white','size',1);
+    Image.image = insertMarker(ims,data.xy,'+','color',dotcolor,'size',1);
     Image.imname = [imageidout,'cell_stamp_mosiacs_pos_neg_no_dapi',stype,'.tif'];
     makemosaics(Image)
     %
@@ -1374,8 +1780,12 @@ end
 %
 % create full color image for phenotyped image with dapi
 %
-imp = insertMarker(im_full_color,data.xy,'+','color','white','size',1);
-iname = [imageidout,'full_color_expression_image',stype,'.tif'];
+imp = insertMarker(im_full_color_seg, data.xy, '+','color','white','size',1);
+iname = [imageidout,'full_color_expression_image.tif'];
+write_image(iname,imp,Image)
+%
+imp = insertMarker(im_full_color, data.xy, '+','color','white','size',1);
+iname = [imageidout,'full_color_expression_image_no_seg.tif'];
 write_image(iname,imp,Image)
 %
 end
@@ -1476,7 +1886,8 @@ end
 %%% This fucntion creates image mosiacs for expression markers
 %% --------------------------------------------------------------
 %%
-function mkexprim(mycol,imageid,im, Markers, im_full_color)
+function mkexprim(mycol, imageid, im,...
+    Markers, im_full_color, im_full_color_seg)
 %
 [Image,~] = getset(Markers,imageid);
 %
@@ -1486,6 +1897,12 @@ function mkexprim(mycol,imageid,im, Markers, im_full_color)
 [ims, expr, d2] = getSegMaps(imageid, Markers);
 %
 for t = 1:length(expr.namtypes)
+    %
+    if (width(d2{t}) ~= 7)
+        continue
+    end
+    %
+    compartment = expr.compartment(t);
     %
     % put image together fused for expr, dapi, segmentation
     %
@@ -1522,8 +1939,8 @@ for t = 1:length(expr.namtypes)
     if height(data.pos) > 1
         %
         create_color_images(ime, imageid.outABexpr{t},...
-            Image,im_full_color, data, d2{t}, imend, ...
-            ime_noseg, imend_noseg);
+            Image,im_full_color, im_full_color_seg, data, d2{t}, imend, ...
+            ime_noseg, imend_noseg, compartment);
         %
     end
 end
@@ -1558,6 +1975,8 @@ AB_fdnames = cellfun(@(x)extractBetween(x,'\Phenotype\',['\',imageid.id]),...
 AB_fdnames = [AB_fdnames{:}];
 expr.namtypes = AB_fdnames;
 expr.layer = imageid.exprlayer;
+[~, loc] = ismember(expr.layer, Markers.Opals);
+expr.compartment = Markers.Compartment(loc);
 %
 % get the cell x and y positions from each segmentation map
 %
@@ -1600,13 +2019,15 @@ for i1 = 1:length(xy_expr)
                 break
             end
         end
+    elseif length(idx) == 0
+        continue
     else
         c_seg = seg_types{idx};
     end
     %
     % read in that segmentation map and convert it to a column vector
     %
-    folds = [imageid.wd,'\',c_seg];
+    folds = [imageid.wd,'\Phenotyped\',c_seg];
     im_name = [imageid.id,'binary_seg_maps.tif'];
     im_full = fullfile(folds,im_name);
     %
@@ -1618,6 +2039,7 @@ for i1 = 1:length(xy_expr)
     ii = expr.layer(i1) == Markers.Opals;
     AB = Markers.all(ii);
     expr.layer(i1) = find(ii) + 1;
+    expr.compartment(i1) = Markers.Compartment(ii);
     d2{i1}.ExprPhenotype = strcmp(d2{i1}.Phenotype, AB);
     d2{i1}.CellXPos = d2{i1}.CellXPosition;
     d2{i1}.CellYPos = d2{i1}.CellYPosition;
@@ -1652,14 +2074,15 @@ formatspec = strcat(repmat('%s ',[1,4]),{' '},repmat('%f32 ',[1,11]),...
     repmat('%s ',[1,2]));
 formatspec = formatspec{1};
 %
-T = readtable([wd1,'\',marker,'\',filnm,'.txt'],'Format',formatspec,...
+T = readtable([wd1,'\Phenotyped\',marker,'\',filnm,'.txt'],'Format',formatspec,...
     'Delimiter','\t','TreatAsEmpty',{' ','#N/A'});
 vars = T.Properties.VariableNames;
-ii = find(contains(vars,'micron'));
-if ii
-    units{1} = 'microns';
-else
-    units{1} = 'pixels';
+xy = T(:,{'CellID','CellXPosition','CellYPosition','Phenotype'});
+%
+if any(contains(vars,'pixels'))
+    xy.CellXPosition = xy.CellXPosition + 1;
+    xy.CellYPosition = xy.CellYPosition + 1;
+    return
 end
 %
 filnm2 = extractBetween(filnm,'[',']');
@@ -1667,44 +2090,19 @@ filnm2 = strsplit(filnm2{1},',');
 fx = str2double(filnm2{1});
 fy = str2double(filnm2{2});
 %
-fold = extractBefore(wd1,'Phenotyped');
-fold = [fold,'Component_Tiffs'];
+fold = [wd1,'\Component_Tiffs'];
 iname = [fold,'\',replace(filnm,...
     'cell_seg_data','component_data.tif')];
 imageinfo = imfinfo(iname);
 W = imageinfo.Width;
 H = imageinfo.Height;
 scalea = 10^4 *(1/imageinfo(1).XResolution);
-if strcmp(units{1},'pixels')
-    scale = 1;
-elseif strcmp(units{1},'microns')
-    scale = 10^4 *(1/imageinfo(1).XResolution);
-end
 %
-xy = T(:,{'CellID','CellXPosition','CellYPosition','Phenotype'});
+fx = (fx - scalea*(W/2)); %microns
+fy = (fy - scalea*(H/2)); %microns
 %
-if strcmp(units{1},'microns')
-    fx = (fx - scalea*(W/2)); %microns
-    fy = (fy - scalea*(H/2)); %microns
-elseif strcmp(units{1},'pixels')
-    fx = (1/scalea .* fx - (W/2)); %pixels
-    fy = (1/scalea .* fy - (H/2)); %pixles
-end
-%
-if find(xy.CellXPosition > W)
-    %
-    xy.CellXPosition = 1/scale .* (xy.CellXPosition - fx);
-    xy.CellYPosition = 1/scale .* (xy.CellYPosition - fy);
-    %
-    xy.CellXPosition = round(xy.CellXPosition);
-    xy.CellYPosition = round(xy.CellYPosition);
-    %
-    ii = xy.CellXPosition < 1;
-    xy.CellXPosition(ii) = 1;
-    %
-    ii = xy.CellYPosition < 1;
-    xy.CellYPosition(ii) = 1;
-end
+xy.CellXPosition = floor(1/scale .* (xy.CellXPosition - fx)) + 1;
+xy.CellYPosition = floor(1/scale .* (xy.CellYPosition - fy)) + 1;
 %
 end
 %% mkfigs
