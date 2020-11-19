@@ -666,16 +666,16 @@ if locs == 1
         mkdir(logp)
     end
     %
-    if exist([wd,'\Results\tmp_ForFiguresTables'],'dir')
+    if exist([wd,'\Phenotyped\Results\tmp_ForFiguresTables'],'dir')
         try
-            delete([wd,'\Results\tmp_ForFiguresTables\*'])
+            delete([wd,'\Phenotyped\Results\tmp_ForFiguresTables\*'])
         catch
             err_val = 10;
             warning(['ERROR IN Results path:', wd,' ', sname]);
             return
         end
     else
-        mkdir (wd,'Results\tmp_ForFiguresTables')
+        mkdir (wd,'\Phenotyped\Results\tmp_ForFiguresTables')
     end
     %
     % create file & folder
