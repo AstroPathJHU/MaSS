@@ -1,27 +1,49 @@
-function[Markers] = createmarks(MergeConfig)
+%% createmarks
+%% --------------------------------------------------------------
+%% Created by: Benjamin Green - Johns Hopkins - 01/03/2018
+%% --------------------------------------------------------------
+%% Description
+%%% function takes in a folder location and creates the Markers data
+%%% structure
+%% --------------------------------------------------------------
+%%
+function [Markers, err_val] = createmarks(MergeConfig)
 %
 warning('off','MATLAB:table:ModifiedAndSavedVarnames')
+Markers = [];
 %
 try
     BIDtbl = readtable(MergeConfig);
     B = BIDtbl(:,{'Opal','Target',...
     'TargetType','CoexpressionStatus','SegmentationStatus',...
-    'SegmentationHierarchy', 'ImageQA_QC', 'NumberofSegmentations'});
+    'SegmentationHierarchy', 'ImageQA','Compartment',...
+    'NumberofSegmentations', 'Colors'});
 catch
+    err_val = 1;
     return
 end
 %
-% remove DAPI row
+% check table input variables
 %
-dr = strcmp(B.Opal, 'DAPI');
-B(dr,:) = [];
+[err_val, mycol] = extractcolorvec(B);
+if err_val == 3
+    err_val = 8;
+    return
+end
+%
+[B, err_val] = checkTableVars(B);
+if ~ismember(err_val, [0,2])
+    return
+end
 %
 % start setting up Markers struct
 %
 Markers.Opals = B.Opal;
 Markers.all = B.Target;
+Markers.mycol = mycol;
+Markers.Compartment = B.Compartment;
 %
-ii = strcmp('Tumor',B.ImageQA_QC);
+ii = strcmp('Tumor',B.ImageQA);
 Markers.all_original = Markers.all;
 %
 % change Tumor marker designation to 'Tumor'
@@ -30,19 +52,19 @@ if sum(ii) == 1
     Markers.all(ii) = {'Tumor'};
     Markers.Tumor{1} = 'Tumor';
 elseif sum(ii) > 1
-    Markers.Tumor =  ' MaSS must have only one "Tumor" designation';
+    err_val = 6;
     return
 else
      Markers.Tumor{1} = '';
 end
-ii = strcmp('Immune',B.ImageQA_QC);
 %
-% change Tumor marker designation to 'Tumor'
+ii = strcmp('Immune',B.ImageQA);
 %
 if sum(ii) == 1
     Markers.Immune = Markers.all(ii);
 else
-    Markers.Immune = ' Image QA/QC must have one and only one "Immune" designation';
+    Markers.Immune = Markers.all(find(ii, 1));
+    err_val = 7;
 end
 %
 % get lineage and expression markers
@@ -62,8 +84,7 @@ if iscell(nsegs)
     nsegs = cell2mat(nsegs);
 end
 if find(nsegs(~ET) > 1)
-     Markers.nsegs =  [' MaSS can only handle expression markers',...
-         ' with multiple segmentations'];
+    err_val = 7;
     return
 end
 Markers.nsegs = nsegs;
@@ -72,10 +93,6 @@ Markers.nsegs = nsegs;
 % the primary segmentation
 %
 SS = B.SegmentationStatus;
-if iscell(SS)
-    SS = cell2mat(SS);
-    SS = str2num(SS);
-end
 Markers.SegStatus = SS;
 %
 ii = nsegs == 1 & ~ismember(Markers.all,Markers.expr);
@@ -99,7 +116,7 @@ end
 % get coexpression status for lineage markers
 %
 CS = B.CoexpressionStatus(LT);
-ii = ~strcmp(CS,'NA');
+ii = ~strcmp(CS,'NA') | ~strcmp(CS,'NaN');
 CS = CS(ii);
 %
 % track the corresponding target
@@ -109,10 +126,6 @@ TCS = Markers.lin(ii);
 % get segmentation heirarchy
 %
 SH = B.SegmentationHierarchy;
-if ~iscell(SH)
-    SH = num2str(SH);
-    SH = cellstr(SH);
-end
 Markers.SegHie = SH(LT);
 %
 % CS that is not NA in lineage markers; find which coexpressions are
@@ -156,7 +169,7 @@ for i1 = 1:length(CS)
                 ii = strcmp(T, Markers.lin);
                 seg2 = Markers.SegHie(ii);
                 %
-                seg = max([str2num(seg1{1}),str2num(seg2{1})]);
+                seg = max([str2double(seg1{1}),str2double(seg2{1})]);
                 sego{track} = num2str(seg);
             end
         end
@@ -177,11 +190,10 @@ for i1 = 1:length(CS)
     Markers.Coex{i1} = sum(x,2);
 end
 %
+% reformat for proper dims
 %
-%
+Markers.Opals = cellfun(@str2double, Markers.Opals, 'Uni',0);
 Markers.Opals = cell2mat(Markers.Opals);
-Markers.Opals = str2num(Markers.Opals);
-%
 Markers.all = Markers.all';
 Markers.all_original = Markers.all_original';
 Markers.lin = Markers.lin';
@@ -190,4 +202,5 @@ Markers.nsegs = Markers.nsegs';
 Markers.seg = Markers.seg';
 Markers.altseg = Markers.altseg';
 Markers.SegHie = Markers.SegHie';
+%
 end

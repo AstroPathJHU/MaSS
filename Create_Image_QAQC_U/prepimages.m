@@ -12,7 +12,9 @@ im_dapi = reshape(im_dapi,[im_size, 3]);
 im = im(:,2:end);
 c_map = c_map(2:end,:);
 im_nodapi = 180 * sinh(1.5 * im) * c_map;
-im_nodapi(seg,:) = repmat([scol 0 0], length(seg),1);
+if ~isempty(seg)
+    im_nodapi(seg,:) = repmat([scol 0 0], length(seg),1);
+end
 im_nodapi = uint8(im_nodapi);
 im_nodapi = reshape(im_nodapi,[im_size, 3]);
 %

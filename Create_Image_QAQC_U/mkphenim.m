@@ -1,4 +1,5 @@
-function [q,fullimage] = mkphenim(q,Markers,mycol,imageid,image,simage)
+function [q, fullimage, fullimages] = ...
+    mkphenim(q, Markers, mycol, imageid, image, simage, doseg)
 tp2 = q.fig;
 % create composite image
 image = image * (mycol.all * 255);
@@ -52,6 +53,7 @@ writeDirectory(T)
 close(T)
 %
 fullimage = imp;
+fullimages = imp;
 %
 % add circles for lineage markers
 %
@@ -279,24 +281,31 @@ close(T)
 %
 % add segmentation
 %
-imp = reshape(imp,[],3);
-ss = reshape(simage,[],1);
-ss = find(ss>0);
-imp(ss,:) = repmat([255/.75 0 0],length(ss),1);
-%
-imp = reshape(imp,[imageid.size, 3]);
-%
-% rewrite legend over segmentation
-%
-imp = insertText(imp,position,marksa,'BoxColor',[0,0,0],...
-    'BoxOpacity',1,'FontSize',24,'TextColor', colsa);
-%
-iname = [imageid.outfull,'cleaned_phenotype_w_seg.tif'];
-T = Tiff(iname,'w');
-T.setTag(imageid.ds);
-write(T,imp);
-writeDirectory(T)
-close(T)
+if doseg
+    fullimages = reshape(fullimages,[],3);
+    imp = reshape(imp,[],3);
+    ss = reshape(simage,[],1);
+    ss = find(ss>0);
+    imp(ss,:) = repmat([255/.75 0 0],length(ss),1);
+    fullimages(ss,:) = repmat([166 0 0],length(ss),1);
+    %
+    imp = reshape(imp,[imageid.size, 3]);
+    fullimages = reshape(fullimages,[imageid.size, 3]);
+    %
+    % rewrite legend over segmentation
+    %
+    imp = insertText(imp,position,marksa,'BoxColor',[0,0,0],...
+        'BoxOpacity',1,'FontSize',24,'TextColor', colsa);
+    fullimages = insertText(fullimages,position,marksa,'BoxColor',[0,0,0],...
+        'BoxOpacity',1,'FontSize',24,'TextColor', colsa);
+    %
+    iname = [imageid.outfull,'cleaned_phenotype_w_seg.tif'];
+    T = Tiff(iname,'w');
+    T.setTag(imageid.ds);
+    write(T,imp);
+    writeDirectory(T)
+    close(T)
+end
 %
 q.fig = tp2;
 end

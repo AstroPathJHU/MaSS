@@ -1,7 +1,13 @@
 function create_color_images(im, imageidout, Image,...
-    im_full_color,data, d, im_nodapi, im_dapi_noseg, im_nodapi_noseg)
+    im_full_color, im_full_color_seg, data, d, im_nodapi,...
+    im_dapi_noseg, im_nodapi_noseg, compartment)
 %
 stypes = {'','_no_seg'};
+if strcmp(compartment, 'Nucleus')
+    dotcolor = 'black';
+else
+    dotcolor = 'white';
+end
 %
 % get the data sample
 %
@@ -23,7 +29,7 @@ for i1 = 1:2
         ims = im_dapi_noseg;
     end
     %
-    Image.image = insertMarker(ims, data.xy,'+','color','white','size',1);
+    Image.image = insertMarker(ims, data.xy,'+','color',dotcolor,'size',1);
     iname = [imageidout,'single_color_expression_image',stype,'.tif'];
     write_image(iname,Image.image,Image)
     %
@@ -43,7 +49,7 @@ for i1 = 1:2
     %
     % Create the Image Mosiacs for local positive images without dapi
     %
-    Image.image = insertMarker(ims,data.xy,'+','color','white','size',1);
+    Image.image = insertMarker(ims,data.xy,'+','color',dotcolor,'size',1);
     Image.imname = [imageidout,'cell_stamp_mosiacs_pos_neg_no_dapi',stype,'.tif'];
     makemosaics(Image)
     %
@@ -51,8 +57,12 @@ end
 %
 % create full color image for phenotyped image with dapi
 %
-imp = insertMarker(im_full_color,data.xy,'+','color','white','size',1);
-iname = [imageidout,'full_color_expression_image',stype,'.tif'];
+imp = insertMarker(im_full_color_seg, data.xy, '+','color','white','size',1);
+iname = [imageidout,'full_color_expression_image.tif'];
+write_image(iname,imp,Image)
+%
+imp = insertMarker(im_full_color, data.xy, '+','color','white','size',1);
+iname = [imageidout,'full_color_expression_image_no_seg.tif'];
 write_image(iname,imp,Image)
 %
 end

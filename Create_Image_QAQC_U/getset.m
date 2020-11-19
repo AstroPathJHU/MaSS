@@ -13,7 +13,9 @@ expr.layers = a;
 Image.all_lineages = [Markers.lin, Markers.add];
 %
 [a, ~] = ismember(Markers.all, Image.all_lineages);
+Image.Compartment = Markers.Compartment(a);
 a = find(a) + 1;
 %
 Image.layer = a;
+%
 end

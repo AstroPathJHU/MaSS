@@ -1,18 +1,13 @@
-function mkindvphenim(d,mycol,imageid,im,ims, Markers, im_full_color)
+function mkindvphenim(d, mycol, imageid, im,...
+    ims, Markers, im_full_color, im_full_color_seg)
 %
-[Image,expr] = getset(Markers,imageid);
+[Image,expr] = getset(Markers, imageid);
 %
 % get locations of segmentation
 %
 seg = reshape(ims,[],1);
 seg = find(seg > 0);
 scol = uint8(255 * .65);
-%
-% add segmentation to full color image
-%
-im_full_color = reshape(im_full_color,[],3);
-im_full_color(seg,:) = repmat([scol 0 0], length(seg),1);
-im_full_color = reshape(im_full_color,[imageid.size,3]);
 %
 for M = 1:length(Image.all_lineages)
     %
@@ -34,6 +29,7 @@ for M = 1:length(Image.all_lineages)
         %
         im_lineage_dapi = [im(:,1), im(:,EW), im(:,SW)];
         cc = [mycol.all(1,:); mycol.all(EW,:);  mycol.all(SW,:)];
+        compartment = 'NULL';
         %
     else
         %
@@ -41,6 +37,7 @@ for M = 1:length(Image.all_lineages)
         %
         im_lineage_dapi =[im(:,1), im(:,Image.layer(M))];
         cc = [mycol.all(1,:); 1 1 1];
+        compartment = Image.Compartment(M);
     end
     %
     % get the lineage image with and without dapi in color
@@ -65,8 +62,9 @@ for M = 1:length(Image.all_lineages)
         % create single color image for phenotyped image with dapi
         %
         create_color_images(im_lineage_dapi_color, imageid.outABlin{M},...
-            Image,im_full_color,data, d.fig, im_lineage_nodapi_color,...
-            im_lineage_dapi_color_noseg,im_lineage_nodapi_color_noseg)
+            Image,im_full_color, im_full_color_seg, data, d.fig, ...
+            im_lineage_nodapi_color, im_lineage_dapi_color_noseg, ...
+            im_lineage_nodapi_color_noseg, compartment)
         %
         % make images for expression marker & lineage coexpression
         %
@@ -96,8 +94,9 @@ for M = 1:length(Image.all_lineages)
                     prepimages(imela, cc1, imageid.size, scol, []);
                 %
                 create_color_images(imel, [imageid.outABcoex{M},...
-                    expr.namtypes{t}], Image,im_full_color,data, d.fig,...
-                    imelnd, imel_noseg, imelnd_noseg);
+                    expr.namtypes{t}], Image, im_full_color,...
+                    im_full_color_seg, data, d.fig,...
+                    imelnd, imel_noseg, imelnd_noseg, compartment);
             end
         end
     end

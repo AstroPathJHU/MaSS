@@ -4,7 +4,7 @@ function[query2, query3] = delextrfields(fd,nm,wd,Markers,formatspec,inc)
 %
 fname = [fd,'\',nm];
 fid = extractBefore(nm,'cleaned_phenotype_table');
-fname2 =  [wd,'\',Markers.seg{1},'\',fid,'cell_seg_data_summary.txt'];
+fname2 =  [wd,'\Phenotyped\',Markers.seg{1},'\',fid,'cell_seg_data_summary.txt'];
 %
 % read that table in
 %

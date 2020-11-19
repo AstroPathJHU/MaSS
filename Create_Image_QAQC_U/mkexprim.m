@@ -1,4 +1,5 @@
-function mkexprim(mycol,imageid,im, Markers, im_full_color)
+function mkexprim(mycol, imageid, im,...
+    Markers, im_full_color, im_full_color_seg)
 %
 [Image,~] = getset(Markers,imageid);
 %
@@ -8,6 +9,12 @@ function mkexprim(mycol,imageid,im, Markers, im_full_color)
 [ims, expr, d2] = getSegMaps(imageid, Markers);
 %
 for t = 1:length(expr.namtypes)
+    %
+    if (width(d2{t}) ~= 7)
+        continue
+    end
+    %
+    compartment = expr.compartment(t);
     %
     % put image together fused for expr, dapi, segmentation
     %
@@ -44,8 +51,8 @@ for t = 1:length(expr.namtypes)
     if height(data.pos) > 1
         %
         create_color_images(ime, imageid.outABexpr{t},...
-            Image,im_full_color, data, d2{t}, imend, ...
-            ime_noseg, imend_noseg);
+            Image,im_full_color, im_full_color_seg, data, d2{t}, imend, ...
+            ime_noseg, imend_noseg, compartment);
         %
     end
 end

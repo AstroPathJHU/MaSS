@@ -7,6 +7,8 @@ AB_fdnames = cellfun(@(x)extractBetween(x,'\Phenotype\',['\',imageid.id]),...
 AB_fdnames = [AB_fdnames{:}];
 expr.namtypes = AB_fdnames;
 expr.layer = imageid.exprlayer;
+[~, loc] = ismember(expr.layer, Markers.Opals);
+expr.compartment = Markers.Compartment(loc);
 %
 % get the cell x and y positions from each segmentation map
 %
@@ -49,13 +51,15 @@ for i1 = 1:length(xy_expr)
                 break
             end
         end
+    elseif length(idx) == 0
+        continue
     else
         c_seg = seg_types{idx};
     end
     %
     % read in that segmentation map and convert it to a column vector
     %
-    folds = [imageid.wd,'\',c_seg];
+    folds = [imageid.wd,'\Phenotyped\',c_seg];
     im_name = [imageid.id,'binary_seg_maps.tif'];
     im_full = fullfile(folds,im_name);
     %
@@ -67,6 +71,7 @@ for i1 = 1:length(xy_expr)
     ii = expr.layer(i1) == Markers.Opals;
     AB = Markers.all(ii);
     expr.layer(i1) = find(ii) + 1;
+    expr.compartment(i1) = Markers.Compartment(ii);
     d2{i1}.ExprPhenotype = strcmp(d2{i1}.Phenotype, AB);
     d2{i1}.CellXPos = d2{i1}.CellXPosition;
     d2{i1}.CellYPos = d2{i1}.CellYPosition;
