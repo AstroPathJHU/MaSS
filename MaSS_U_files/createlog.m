@@ -1,27 +1,55 @@
-function log = createlog(errors, errors2, wd, tim, Markers)
+%% function: createlog
+%% --------------------------------------------------------------
+%% Created by: Benjamin Green - Johns Hopkins - 07/07/2020
+%% --------------------------------------------------------------
+%% Description
+% create the log and output resultant error messages
+%% --------------------------------------------------------------
+%% input:
+% err_val = exit code value indicating different errors
+% loc = location in main code block of log file message
+% wd = working directory of current specimen up to inform_data\Phenotyped
+% tim = contains different file and time information
+%%
+function log = createlog(wd, sname, Markers, err_str, loc, tim)
+%
+if loc == 1
+    %
+    % create file & folder
+    %
+    logfd = [wd,'\Results\Tables'];
+    if ~exist(logfd, 'dir')
+        mkdir(logfd)
+    end
+    %
+    logf = [wd,'\Results\Tables\MaSS.log'];
+    %
+    % create first line of file
+    %
+    tim1 = tim{1};
+    str = [sname, ';merge inForm ', ...
+           'tables started;', tim1, '\r\n'];
+    %
+    fileID = fopen(logf,'wt');
+    fprintf(fileID,str);
+    fclose(fileID);
+    %
+end
+    
+    
+    if ~isempty(tim1)
+        str = [str,'     ',tim1,' inForm Cell Analysis *cell_seg_data.txt tables',...
+            ' detected. \r\n'];
+    end
+
+    %
+
 %
 % get non-empty cells, ie the names of images that had errors
 %
 errors = errors(~cellfun('isempty',errors));
-%
-% create file & folder
-%
-logfd = [wd,'\Results\Tables'];
-if ~exist(logfd, 'dir')
-    mkdir(logfd)
-end
-logf = [wd,'\Results\Tables\MaSSLog.txt'];
-%
-% create first line of file
-%
-tim1 = tim{1};
-str = ['Merging a Single Sample for inForm Cell Analysis tables started - ',...
-    tim1,'\r\n'];
-tim1 = num2str(tim{2});
-if ~isempty(tim1)
-    str = [str,'     ',tim1,' inForm Cell Analysis *cell_seg_data.txt tables',...
-        ' detected. \r\n'];
-end
+
+
 %
 % add to list of any errors that may have occured
 %

@@ -1,4 +1,4 @@
-function [C, p2, units] = readalltxt(filename,Markers,wd)
+function [C, units] = readalltxt(filename,Markers,wd)
 %%-------------------------------------------------------------------------
 %% get all the phenotypes, coordinates, intensties into a single table
 %% 
@@ -20,27 +20,34 @@ vars.comp = repmat({'Nucleus', 'Membrane','EntireCell','Cytoplasm'},1,2);
 a(:,1)= cellfun(@(x,y)strcat(x,'DAPI','_DAPI_',...
     y,'_NormalizedCounts_TotalWeighting_'),vars.comp,vars.type,'Uni',0);
 a2(:,1)= a(:,1);
+%
+% Sometimes DAPI is named, sometimes it isn't resulting in different
+% column names which we use these vectors
+%
 a3(:,1)= cellfun(@(x,y)strcat(x,'DAPI',...
     y,'_NormalizedCounts_TotalWeighting_'),vars.comp,vars.type,'Uni',0);
 a4(:,1)= a3(:,1);
+%
 b(:,1)= cellfun(@(x,y)strcat(y,x,'DAPI'),vars.comp,vars.type,'Uni',0);
 %
 % column names for all other markers
 %
 for i3 = 1:length(vars.Opals)
+    %
+    % tumor antibody should have been labeled with 'Tumor' in inForm
+    %
     a(:,i3+1) = cellfun(@(x,y)strcat(...
         x,Markers.all{i3},'_Opal',num2str(vars.Opals(i3)),'_',y,...
         '_NormalizedCounts_TotalWeighting_'),vars.comp,vars.type,'Uni',0);
     %
-    % Markers.all_original
-    % check the orginial designation if first read fails with Tumor
-    % replaced designation
+    % However, mistakes happen so we check with the Tumor
+    % antibody designation from inForm
     %
     a2(:,i3+1) = cellfun(@(x,y)strcat(...
         x,Markers.all_original{i3},'_Opal',num2str(vars.Opals(i3)),'_',y,...
         '_NormalizedCounts_TotalWeighting_'),vars.comp,vars.type,'Uni',0);
     %
-    % to maintain compatability with inForm
+    % Do the same for alternate DAPI naming
     %
     a3(:,i3+1) = a(:,i3+1);
     a4(:,i3+1) = a2(:,i3+1);
@@ -61,11 +68,11 @@ vars.namesin_original = cellfun(@(x)shortenName(x),zz,'Uni',0);
 %
 zz = a3';
 zz = vertcat(zz(:))';
-vars.namesin_updatedinForm = cellfun(@(x)shortenName(x),zz,'Uni',0);
+vars.namesin_dapierror = cellfun(@(x)shortenName(x),zz,'Uni',0);
 %
 zz = a4';
 zz = vertcat(zz(:))';
-vars.namesin_updatedinForm_original = cellfun(@(x)shortenName(x),zz,'Uni',0);
+vars.namesin_dapierror_original = cellfun(@(x)shortenName(x),zz,'Uni',0);
 %
 % New Table Names
 %
@@ -76,15 +83,16 @@ vars.names = zz;
 % read the text files in each folder to a cell vector (read lineage and
 % expr separate?)
 %
-[v,p,units] = cellfun(@(x) readtxt(filename,x,vars,wd,layers),Markers.lin,'Uni',0);
-[v2,p2,~] = cellfun(@(x) readtxt(filename,x,vars,wd,layers),Markers.expr,'Uni',0);
+[v,units] = cellfun(@(x) readtxt(...
+    filename, x, vars, wd, layers), Markers.lin, 'Uni', 0);
+[v2,~] = cellfun(@(x) readtxt(...
+    filename, x, vars, wd, layers), Markers.expr, 'Uni', 0);
 %
 % read in tables for multiple segmentation
 %
 idx = find(Markers.nsegs > 1);
 idx_count = 0;
 v3 = {};
-p3 = {};
 %
 if idx
    for i1 = 1:length(idx)
@@ -92,18 +100,11 @@ if idx
         for i2 = 2:Markers.nsegs(cidx)
             idx_count = idx_count + 1;
             x = [Markers.all{cidx},'_',num2str(i2)];
-            [v3{idx_count},p3{idx_count},~] = readtxt(filename,x, vars, wd, layers);
+            [v3{idx_count},~] = readtxt(filename,x, vars, wd, layers);
         end
    end
 end
 %
-% check that all paths are the same
-%
-p = [p,p2];
-p2 = extractAfter(p,'im3');
-p2 = sum(ismember(p2,'\flatw'));
-%
-p2 = length(Markers.all);
 % merge cell vectors
 %
 v = [v,v2,v3];

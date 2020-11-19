@@ -5,16 +5,19 @@ function f = getphenofield(C, Markers, units)
 fold = extractBefore(C.fname.folder,'Phenotyped');
 fold = [fold,'\Component_Tiffs'];
 iname = [fold,'\',extractBefore(C.fname.name,...
-    'cell_seg_data.txt'),'component_data.tif'];
+    "]_cell_seg"),']_component_data.tif'];
+if isempty(iname)
+    iname = [fold,'\',extractBefore(C.fname.name,...
+        "]_CELL_SEG"),']_component_data.tif'];
+end
+%
 imageinfo = imfinfo(iname);
 W = imageinfo.Width;
 H = imageinfo.Height;
-scalea = 10^4 *(1/imageinfo(1).XResolution);
-if strcmp(units{1},'pixels')
-    scale = 1;
-elseif strcmp(units{1},'microns')
-    scale = 10^4 *(1/imageinfo(1).XResolution);
-end
+scalea = 10^4 *(1/imageinfo(1).XResolution); % UM/PX
+[~, loc] = ismember(Markers.lin, Markers.all);
+unit_name = repmat({'pixels'}, length(Markers.all),1);
+unit_name(loc) = units;
 %
 % get only the postive cells from each phenotype
 %
@@ -37,24 +40,11 @@ for i3 = 1:length(Markers.all)
         %
         dat2.Phenotype = repmat({mark},height(dat2),1);
         %
-        if strcmp(units{1},'microns')
+        if strcmp(unit_name{i3},'microns')
             fx = (dat2.fx - scalea*(W/2)); %microns
             fy = (dat2.fy - scalea*(H/2)); %microns
-        elseif strcmp(units{1},'pixels')
-            fx = (1/scalea .* dat2.fx - (W/2)); %pixels
-            fy = (1/scalea .* dat2.fy - (H/2)); %pixles
-        end
-        %
-        if strcmp(units{1},'microns')
-            dat2.CellXPos = floor(1/scale .* (dat2.CellXPos - fx));
-            ii = dat2.CellXPos < 1;
-            %
-            dat2.CellXPos(ii) = 1;
-            %
-            dat2.CellYPos = floor(1/scale .* (dat2.CellYPos - fy));
-            ii = dat2.CellYPos < 1;
-            %
-            dat2.CellYPos(ii) = 1;
+            dat2.CellXPos = floor(1/scalea .* (dat2.CellXPos - fx));
+            dat2.CellYPos = floor(1/scalea .* (dat2.CellYPos - fy));
         end
         %
     end
@@ -64,29 +54,17 @@ end
 % create a set of others
 %
 dat2 = C.(Markers.seg{1});
+[~,loc] = ismember(Markers.seg, Markers.lin);
 %
 if ~isempty(dat2)
     %
     dat2.Phenotype = repmat({'Other'},height(dat2),1);
     %
-    if strcmp(units{1},'microns')
+    if strcmp(units{loc}, 'microns')
         fx = (dat2.fx - scalea*(W/2)); %microns
         fy = (dat2.fy - scalea*(H/2)); %microns
-    elseif strcmp(units{1},'pixels')
-        fx = (1/scalea .* dat2.fx - (W/2)); %pixels
-        fy = (1/scalea .* dat2.fy - (H/2)); %pixles
-    end
-    %
-    if strcmp(units{1},'microns')
-        dat2.CellXPos = floor(1/scale .* (dat2.CellXPos - fx));
-        ii = dat2.CellXPos < 1;
-        %
-        dat2.CellXPos(ii) = 1;
-        %
-        dat2.CellYPos = floor(1/scale .* (dat2.CellYPos - fy));
-        ii = dat2.CellYPos < 1;
-        %
-        dat2.CellYPos(ii) = 1;
+        dat2.CellXPos = floor(1/scalea .* (dat2.CellXPos - fx));
+        dat2.CellYPos = floor(1/scalea .* (dat2.CellYPos - fy));
     end
     %
 end

@@ -1,48 +1,9 @@
-function [errors, errors2,tim,Markers] = fileloop(wd,sname,MergeConfig)
-%
-tim = cell(4,1);
-%
-tim{1} = datestr(now,'dd-mmm-yyyy HH:MM:SS');
+function [errors, nfiles, Markers] = fileloop(...
+    wd, sname, filenms, Markers, logstring)
 %
 tic
-errors2 = [];
-errors = cell(1,1);
-Markers = [];
-%
-% get Markers structure
-%
-try
-    Markers = createmarks(MergeConfig);
-catch
-    errors2 = ['Error in ',sname, ': check Batch ID files.'];
-    disp(errors2);
-    return
-end
-%
-if strcmp(Markers.Tumor,...
-        ' MaSS must have only one "Tumor" designation')
-     errors2 = ['Error in ',sname,':', Markers.Tumor, '.'];
-     disp(errors2);
-     return
-end
-%
-% get all filenames for a directory
-%
-try
-    [filenms,errors2] =  getfilenames(wd,Markers, sname);
-catch
-    errors2 = ['Error in ',sname, ': check inForm output files.'];
-    disp(errors2);
-    return
-end
-if ~isempty(errors2)
-    disp(errors2);
-    return
-end
-%
-tim{2} = length(filenms);
-%
-errors = cell(length(filenms));
+errors = cell(length(filenms), 1);
+nfiles = 0;
 %
 % start the parpool if it is not open;
 % attempt to open with local at max cores, if that does not work attempt 
@@ -51,8 +12,13 @@ errors = cell(length(filenms));
 if isempty(gcp('nocreate'))
     try
         numcores = feature('numcores');
+        %
+        if numcores > length(filenms) 
+            numcores = ceil(length(filenms)/2);
+        end
+        %
         if numcores > 12
-            numcores = 12;
+            numcores = 12; %#ok<NASGU>
         end
         evalc('parpool("local",numcores)');
     catch
@@ -66,27 +32,31 @@ parfor i1 = 1:length(filenms)
     % current filename
     %
     fname = filenms(i1);
+    nm = extractBefore(fname.name,"cell_seg");
+    if isempty(nm)
+        nm = extractBefore(fname.name,"CELL_SEG");
+    end
+    log_name = nm;
     %
     % try each image through the merge tables function
     %
     try
-        [fData,~] = mergetbls(fname,Markers,wd);
+        [fData] = mergetbls(fname,Markers,wd);
+        errors{i1} = 0;
         if isempty(fData)
-            str = ['Error in ',fname.name,...
-                ': check inForm Cell Analysis output.']
             %
-            nm = extractBefore(fname.name,'cell_seg');
+            err_handl(wd, sname, logstring, log_name, 14);
+            %
             nm = [nm,'cleaned_phenotype_table.csv'];
-            ftd = fullfile([wd,'\Results\Tables'],nm);
+            ftd = fullfile([wd,'\Phenotyped\Results\Tables'],nm);
             %
             delete(ftd)
-            disp(str);
-            errors{i1} = fname.name;
+            errors{i1} = 1;
+            %
         end
     catch
-       disp(['Error in ',fname.name,...
-           ': check inForm Cell Analysis output.']);
-       errors{i1} = fname.name;  
+       err_handl(wd, sname, logstring, log_name, 14);
+       errors{i1} = 1;  
     end
     %
 end
@@ -96,9 +66,10 @@ end
 poolobj = gcp('nocreate');
 delete(poolobj);
 %
-tim{3} = toc;
+% get final result measures
 %
-filenms = dir([wd,'\Results\Tables\*_cleaned_phenotype_table.csv']);
-tim{4} = length(filenms);
+filenms = dir([wd,...
+    '\Phenotyped\Results\Tables\*_cleaned_phenotype_table.csv']);
+nfiles = length(filenms);
 %
 end

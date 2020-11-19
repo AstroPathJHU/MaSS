@@ -14,8 +14,9 @@ if ~isempty(o.fig)
         % get cell indx
         %
         s = [o.size.B+1,o.size.R+1];
-        ii = sub2ind(s,o.(mark).CellYPos,o.(mark).CellXPos);
-        ii1 = zeros(1,height(o.fig))';
+        mx = o.(mark).CellXPos + 1;
+        my = o.(mark).CellYPos + 1;
+        ii = sub2ind(s, my, mx);
         xx1 = zeros(1,height(o.fig))';
         %
         [x2,x,rows] = findexpr(ii,o);

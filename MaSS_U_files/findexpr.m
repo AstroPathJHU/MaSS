@@ -8,7 +8,6 @@ x = cat(1,x{:});
 % determine if that cell is in two cells or unique to just one
 [a,b] = unique(x);
 rows = ismember(x,x(setdiff(1:length(x),b)));
-
 i2 = ii;
 i2(a) = [];
 i2 = [i2;ii(unique(x(rows)))];
@@ -22,4 +21,5 @@ x3 = cellfun(@(obj)find(ismember(ii,obj)),o.obj,'Uni',0);
 x2 = find(~cellfun(@isempty,x3))';
 % if lineage cell has two cells keep the first one for now
 x3 = cellfun(@(x)x(1),x3(x2));
+%
 end  

@@ -32,13 +32,21 @@ for i1 = 1:length(Markers.altseg)
     s_markers_idx = Markers.SegStatus == SS & ismember(Markers.all,...
         Markers.lin)';
     s_markers = Markers.all(s_markers_idx);
+    if ~isempty(Markers.add)
+        iis = startsWith(Markers.add, s_markers);
+        s_markers = [s_markers, Markers.add(iis)];
+    end
     %
     % get folder and image names for altseg
     %
     fdname = [extractBefore(p.fname.folder,Markers.all{1}),...
         markalt,'\'];
-    iname = [fdname,extractBefore(p.fname.name,'cell_seg_data.txt'),...
-        'binary_seg_maps.tif'];
+    iname = [fdname,extractBefore(p.fname.name,...
+        "]_cell_seg"),']_binary_seg_maps.tif'];
+    if isempty(iname)
+        iname = [fdname,extractBefore(p.fname.name,...
+            "]_CELL_SEG"),']_binary_seg_maps.tif'];
+    end
     %
     % get rows of altseg cells
     %
@@ -62,7 +70,10 @@ end
 %
 iname = fullfile(p.fname.folder,p.fname.name);
 iname = replace(iname, Markers.all{1}, Markers.seg{1});
-iname = replace(iname, 'cell_seg_data.txt','binary_seg_maps.tif');
+iname = [extractBefore(iname,"]_cell_seg"),']_binary_seg_maps.tif'];
+if isempty(iname)
+    iname = [extractBefore(iname,"]_CELL_SEG"),']_binary_seg_maps.tif'];
+end
 %
 % get cellids of 1ry seg cells
 %
@@ -110,8 +121,8 @@ im5(CellID(~trowsall)) = im4;
 objt = obj(trowsall);
 objt = cat(1,objt{:});
 %
-X = round(p.fig.CellXPos(orows));
-Y = round(p.fig.CellYPos(orows));
+X = p.fig.CellXPos(orows) + 1;
+Y = p.fig.CellYPos(orows) + 1;
 Oth = sub2ind(s{1},Y,X);
 rows = ismember(Oth,objt);
 %

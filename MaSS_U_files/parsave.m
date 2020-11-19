@@ -47,8 +47,12 @@ end
 %
 % write out whole image csv table
 %
-nm = [wd,'\Results\Tables\',erase(fname.name,...
-    'cell_seg_data.txt'),'cleaned_phenotype_table.csv'];
+nm = [wd,'\Phenotyped\Results\Tables\',extractBefore(fname.name,...
+    ']_cell_seg'),']_cleaned_phenotype_table.csv'];
+if isempty(nm)
+    nm = [wd,'\Phenotyped\Results\Tables\',extractBefore(fname.name,...
+    ']_CELL_SEG'),']_cleaned_phenotype_table.csv'];
+end
 writetable(fData.fig(:,[1,3:end]),nm);
 %
 % write out image for use in figures later
@@ -61,9 +65,14 @@ else
     r = ones(height(fData.fig));
 end
 if length(fData.fig.CellID) > 400 && length(find(r)) > 60
-    fname2 = strcat(wd,'\Results\tmp_ForFiguresTables\',...
-        erase(fname.name,'cell_seg_data.txt'),...
-        'cleaned_phenotype_table.mat');
+    fname2 = strcat(wd,'\Phenotyped\Results\tmp_ForFiguresTables\',...
+        extractBefore(fname.name,']_cell_seg'),...
+        ']_cleaned_phenotype_table.mat');
+    if isempty(fname2)
+        fname2 = strcat(wd,'\Phenotyped\Results\tmp_ForFiguresTables\',...
+            extractBefore(fname.name,']_CELL_SEG'),...
+            ']_cleaned_phenotype_table.mat');
+    end
     save(fname2,'fData');
     mktmp = 'TRUE';
 else
