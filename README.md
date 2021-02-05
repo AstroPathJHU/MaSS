@@ -4,7 +4,7 @@
  <div align="center">Departments of <sup>1</sup>Dermatology, <sup>2</sup>Oncology, <sup>3</sup>Pathology at Johns Hopkins University SOM, the Mark Center for Advanced Genomics and Imaging, the Sidney Kimmel Comprehensive Cancer Center, and the Bloomberg~Kimmel Institute for Cancer Immunotherapy at Johns Hopkins, Baltimore, MD, USA</div>
   Departments of <sup>4</sup>Astronomy and Physics at Johns Hopkins University and IDIES, Baltimore, MD, USA
 
-<div align="center">Individual Contributions: **Benjamin Green**: Conceptualization, Methodology, Software, Writing – Original Draft; Visualization **Sneha Berry**: Conceptualization; Validation, Visualization, Writing – Review & Editing **Liz Engle**: Conceptualization, Resources **Nicolas Giraldo-Castillo**: Conceptualization **Peter Nguyen** Conceptualization, Methodology **Tricia Cottrell** Conceptualization, Validation, Writing – Review & Editing **Janis Taube** Conceptualization, Supervision **Alex Szalay** Conceptualization, Methodology, Validation, Software
+Individual Contributions: **Benjamin Green**: Conceptualization, Methodology, Software, Writing – Original Draft; Visualization **Sneha Berry**: Conceptualization; Validation, Visualization, Writing – Review & Editing **Liz Engle**: Conceptualization, Resources **Nicolas Giraldo-Castillo**: Conceptualization **Peter Nguyen** Conceptualization, Methodology **Tricia Cottrell** Conceptualization, Validation, Writing – Review & Editing **Janis Taube** Conceptualization, Supervision **Alex Szalay** Conceptualization, Methodology, Validation, Software
 
 
 
