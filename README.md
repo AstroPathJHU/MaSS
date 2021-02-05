@@ -50,7 +50,7 @@ Finally, the code assigns positive expression marker phenotype calls to the cell
 ## ***Section 4: Merge Configuration File Structure***
 Merge Configuration file is a csv spreadsheet which indicates how the markers will be analyzed and merged to a single coordinate system where only one phenotype call exists for each cell. Columns are defined below, column names are case senstitive. Mark fields that do not have a designation as NA in character columns and 0s in numeric columns. 
 
-![Figure 4 Image](www/Fig4.png)
+![Figure 4 Image](www/Fig4.PNG)
 
 1. BatchID```[int]```: indicates which batch the slides were stained in. This variable is used a record keeping method and does not indicate settings in the merge code
 2. Opal```[int]```: should be the name of the Fluor which targets a given antibody
