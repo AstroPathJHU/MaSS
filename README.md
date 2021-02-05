@@ -29,10 +29,22 @@ Once the data files are set up correctly, the code can be executed. The followin
 
 ![Figure 1 Image](www/Fig1.png)
 
-Next, the code resolves cells with different lineage phenotypes within the 6 pixel radius of each other using the segmenation hierarchy, defined in the merge configuration file. For the hierarchy each lineage should be ranked by the following factors.
+Next, the code resolves cells with different lineage phenotypes within the 6 pixel radius of each other using the segmenation hierarchy, defined in the merge configuration file. For the hierarchy each lineage should be ranked by the following factors:
 1. Uniformity of staining: Some cell markers\ antibodies have more uniform and well-defined staining patterns.
 2. Uniformity of cell type: Some cells have patterns that are easier to distinguish and thus greater confidence should be given to the phenotype of these cells.
 3.	Shape of cell type: Some cells have different shapes that make them easier or harder for segmentation and classification algorithms to correctly identify. 
 4.	Importance of cell type in analysis: Some cells are more or less biologically significant, thus we should make better attempts to allow for the capture these cell types.
 
+For conflicting phenotype classifications found, cells with a higher numeric value in the hierarchy will be removed. An example of this is shown below, where a CD8 cell (yellow) collides with CD163 (magenta) cell classifications Here, the result phenotype image shows that the CD8 classification is kept and the CD163 classification is dropped:
 
+![Figure 2 Image](www/Fig2.png)
+
+During this protocol, we also search for cell lineage classifications which collide but are defined as "acceptable coexpression" in the merge configuration file. For these cells, the phenotypes are relabeled; combining the 'Target' names of the two markers in reverse numeric opal order. For example, if we allow for CD8+ FoxP3+ coexpression where CD8 was in 540 and FoxP3 in 570, the resulting phenotype would be defined as FoxP3CD8 for colliding cells. 
+
+After this, a final clean up protocol is performed on the data wherein 'Other' cells with cell centers inside the membrane of any lineage cells are removed. This clean up protocol is one of the most important features of this software. Take for instance, a large tumor cell that is well segmented and correctly defined positive by our algorithm, but we define the primary segmentation on smaller immune cells. That large tumor cell will be oversegmented in the immune cell segmentation. While, these oversegmented cells  should be given the phenotype classification of 'Other' cells they are only removed if they collide within 6 pixels of the provided tumor cell center. The result of this is a single tumor call, but an overestimation of the 'Other' cells in the image. Additionally, assignment of the expression marker to a given cell, described below, becomes uncertain. Note that in this case, the tumor cell cannot be relied on as the primary segmentation in this case because a majority of the non-labeled cells in tissue are more likely to be immune cells than tumor. A visual example of this clean-up protocol is shown below. 
+
+![Figure 3 Image](www/Fig3.png)
+
+Finally, the code assigns positive expression marker phenotype calls to the cell objects their cell centers are contained in. Expression marker phenotypes with cell coordinates inside two cell membranes are assigned to the closest lineage cell, based on cell centers. 
+
+## ***Section 4: Merge Configuration File Structure***
