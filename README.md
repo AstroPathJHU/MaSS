@@ -48,3 +48,6 @@ After this, a final clean up protocol is performed on the data wherein 'Other' c
 Finally, the code assigns positive expression marker phenotype calls to the cell objects their cell centers are contained in. Expression marker phenotypes with cell coordinates inside two cell membranes are assigned to the closest lineage cell, based on cell centers. 
 
 ## ***Section 4: Merge Configuration File Structure***
+Merge Configuration file is a csv spreadsheet which indicates how the markers will be analyzed and merged to a single coordinate system where only one phenotype call exists for each cell. Columns are defined below, column names are case senstitive. Mark fields that do not have a designation as NA in character columns and 0s in numeric columns. 
+1. BatchID[```int```]: 
+
