@@ -89,17 +89,17 @@ Merge Configuration file is a csv spreadsheet which indicates how the markers wi
      - e.g.: A cell given a positive phenotype for CD8 in the CD8 algorithm and positive for CD163 in the CD163 algorithm; if CD8 (1) is ranked higher than CD163 (2) then the CD163 designation will be removed
    - Only cells that are allowed co-expression should have the same number. If two cells co-express with the same cell but not each other (CD4-FoxP3 and CD8-FoxP3); use the higher number for one of the two cells (CD4 or CD8) and the double co-expressed cell (FoxP3). Use a lower number for the other cell (CD4 or CD8). In the example with CD8-CD4-FoxP3 we usually use the numbers 1-2-1. CD4-FoxP3 will still be found based off of co-expression status but CD8-FoxP3 cells will take precedence.
 8.	NumberofSegmentations 
-   - this value indicates how many segmentations were used for each antibody
-   - as of the current update this setting is only supported on markers designated as ‘expression’
-   - lineage cells that are from separate segmentations but are allowed to coexpress will create unexpected results 
+    - this value indicates how many segmentations were used for each antibody
+    - as of the current update this setting is only supported on markers designated as ‘expression’
+    - lineage cells that are from separate segmentations but are allowed to coexpress will create unexpected results 
 9.	ImageQA```[string]```: This column allows a user to set 2 different conditions of the batch
-   -	'Immune': The user can set one cell type as the ‘Immune’ cell 
-     - Fields with the highest density of this cell type will be selected by the CreateImageQAQC algorithm to be assessed
-     - there needs to be at least one and only one of these designations for the MaSS code to work
-   -	'Tumor': The user can set one cell type as ‘Tumor’
-      - This is an optional field and will tell the code to narrow down the QA to fields to only include those with more than 60 of this cell type
-      - There can be only one cell of this type
-   -	Only set one marker as ‘Immune’ and only one marker as ‘Tumor’
+    -	'Immune': The user can set one cell type as the ‘Immune’ cell 
+      - Fields with the highest density of this cell type will be selected by the CreateImageQAQC algorithm to be assessed
+      - there needs to be at least one and only one of these designations for the MaSS code to work
+    -	'Tumor': The user can set one cell type as ‘Tumor’
+       - This is an optional field and will tell the code to narrow down the QA to fields to only include those with more than 60 of this cell type
+       - There can be only one cell of this type
+    -	Only set one marker as ‘Immune’ and only one marker as ‘Tumor’
 10. Colors```[string]```: specify the colors for the create image qa qc protocol. Colors can be specified by the first letter of the colors or by the color name.
 
 ## ***Section 5: Image and Table File Structure***
