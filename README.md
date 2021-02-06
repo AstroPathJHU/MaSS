@@ -210,7 +210,7 @@ The code creates output into a QA_QC subfolder under the ```*DIR\MXX\inform_data
 
 - Tables_QA_QC (subfolder):
   - These are the MaSS results tables for these images, placed here for referencing convience if further testing is desired.
-- ImageQA_QCLog.txt
+- QA_QC.log
   - This log file details the number of hotspot fields chosen, as well as time stamps for the image output, the figure output, and completion time of the program. 
 - Phenotype (subfolder):
   - All_Markers (subfolder): three types of image output, designated by the following extensions after the image coordinate brackets
