@@ -70,10 +70,12 @@
 %%
 function [err_val] = MaSS(wd, sname, MergeConfig, logstring)
 %
-version = '1.00.0001';
+version = '0.01.001';
 if nargin < 4
     logstring = '';
 end
+%
+imall = 0;
 %
 err_val = mywritetolog(wd, sname, logstring, '', 1, version);
 e_code = err_handl(wd, sname, logstring, [], err_val);
@@ -126,7 +128,7 @@ try
     mywritetolog(wd, sname, logstring, err_str, 2);
     %
     [e, nfiles, Markers] = ...
-        fileloop(wd, sname, filenms, Markers, logstring);
+        fileloop(wd, sname, filenms, Markers, logstring, imall);
     %
     err_str = ['successfully merged ',num2str(nfiles),...
         ' file(s)'];
@@ -539,7 +541,7 @@ if iscell(SS)
 end
 %
 SH = B.SegmentationHierarchy;
-if ~iscell(SS)
+if ~iscell(SH)
     SH = num2str(SH);
     SH = cellstr(SH);
     B.SegmentationHierarchy = SH;
@@ -758,7 +760,7 @@ if err_val ~= 0
                 'algorithms; check MergeCongif file'];
             e_code = 1;
         case 8
-            err_str = ['ERROR: could not parse MergeConfig files'];
+            err_str = 'ERROR: could not parse MergeConfig files';
             e_code = 1;
         case 9
             err_str = ['ERROR: could not delete previous results folders.',...
@@ -782,9 +784,27 @@ if err_val ~= 0
             e_code = 1;
         case 14
             err_str = ['ERROR: ', Markers,' failed'];
+            %
+            nm = [Markers,'_cleaned_phenotype_table.csv'];
+            ftd = fullfile([wd,'\Phenotyped\Results\Tables'],nm);
+            delete(ftd)
+            %
             e_code = 0;
         case 15
             err_str = 'ERROR: check inForm output files';
+            e_code = 0;
+        case 16
+            err_str = ['ERROR: ', Markers,' failed. ',...
+                'Units in dual segmentation antibody not the same'];
+            %
+            nm = [Markers,'_cleaned_phenotype_table.csv'];
+            ftd = fullfile([wd,'\Phenotyped\Results\Tables'],nm);
+            delete(ftd)
+            %
+            e_code = 0;
+        case 17
+            err_str = ['WARNING: ', Markers,': ',...
+                'Units for at least one inForm output in microns instead of pixels.'];
             e_code = 0;
     end
     %
@@ -805,7 +825,7 @@ end
 %% --------------------------------------------------------
 %%
 function [errors, nfiles, Markers] = fileloop(...
-    wd, sname, filenms, Markers, logstring)
+    wd, sname, filenms, Markers, logstring, imall)
 %
 tic
 errors = cell(length(filenms), 1);
@@ -838,28 +858,29 @@ parfor i1 = 1:length(filenms)
     % current filename
     %
     fname = filenms(i1);
-    nm = extractBefore(fname.name,"cell_seg");
+    nm = extractBefore(fname.name,"_cell_seg");
     if isempty(nm)
-        nm = extractBefore(fname.name,"CELL_SEG");
+        nm = extractBefore(fname.name,"_CELL_SEG");
     end
     log_name = nm;
     %
     % try each image through the merge tables function
     %
     try
-        [fData] = mergetbls(fname,Markers,wd);
+        [fData, e_code] = mergetbls(fname, Markers, wd, imall);
         errors{i1} = 0;
-        if isempty(fData)
+        %
+        if isempty(fData) && e_code == 0
+            e_code = 14;
+        end
+        %
+        if e_code ~= 0
             %
-            err_handl(wd, sname, logstring, log_name, 14);
-            %
-            nm = [nm,'cleaned_phenotype_table.csv'];
-            ftd = fullfile([wd,'\Phenotyped\Results\Tables'],nm);
-            %
-            delete(ftd)
+            err_handl(wd, sname, logstring, log_name, e_code);
             errors{i1} = 1;
             %
         end
+        %
     catch
        err_handl(wd, sname, logstring, log_name, 14);
        errors{i1} = 1;  
@@ -889,11 +910,23 @@ end
 % it generates a *\Tables\ directory and merged inform files
 %% --------------------------------------------------------------
 %%
-function [fData] = mergetbls(fname,Markers,wd)
+function [fData, e_code] = mergetbls(fname, Markers, wd, imall)
+%
+fData = [];
 %
 % read in data
 %
-[C, units] = readalltxt(fname,Markers,wd);
+[C, units, e_code] = readalltxt(fname, Markers, wd);
+%
+if e_code ~= 0
+    return
+end
+%
+% units check
+%
+if any(~strcmp(units, 'pixels'))
+    e_code = 17;
+end
 %
 % select proper phenotypes
 %
@@ -901,24 +934,24 @@ f = getphenofield(C, Markers, units);
 %
 % remove cells within X number of pixels in cells
 %
-d = getdistinct(f,Markers);
+d = getdistinct(f, Markers);
 %
 % removes double calls in hierarchical style
 %
-q = getcoex(d,Markers);
+q = getcoex(d, Markers);
 %
 % get polygons from inform and remove other cells inside secondary 
 % segmentation polygons
 %
-a = getseg(q,Markers);
+a = getseg(q, Markers);
 %
 % determine expression markers by cells that are in X radius
 %
-fData = getexprmark(a,Markers);
+fData = getexprmark(a, Markers);
 %
 % save the data
 %
-ii = parsave(fData,fname,Markers,wd);
+ii = parsave(fData, fname, Markers, wd, imall);
 %
 end
 %% function: readalltxt; read all table for a given fname
@@ -932,11 +965,12 @@ end
 % in the file tree described below in the input section
 %% --------------------------------------------------------
 %%
-function [C, units] = readalltxt(filename,Markers,wd)
+function [C, units, e_code] = readalltxt(filename,Markers,wd)
 %%-------------------------------------------------------------------------
 %% get all the phenotypes, coordinates, intensties into a single table
 %% 
 %%-------------------------------------------------------------------------
+e_code = 0;
 %
 % Create a string vector which contains desired variables from the inform
 % output and new variable names
@@ -1019,8 +1053,16 @@ vars.names = zz;
 %
 [v,units] = cellfun(@(x) readtxt(...
     filename, x, vars, wd, layers), Markers.lin, 'Uni', 0);
-[v2,~] = cellfun(@(x) readtxt(...
+[v2,units2] = cellfun(@(x) readtxt(...
     filename, x, vars, wd, layers), Markers.expr, 'Uni', 0);
+%
+[~, loc] = ismember(Markers.lin, Markers.all);
+unit_name = repmat({'pixels'}, length(Markers.all),1);
+unit_name(loc) = units;
+%
+[~, loc] = ismember(Markers.expr, Markers.all);
+unit_name(loc) = units2;
+units = unit_name;
 %
 % read in tables for multiple segmentation
 %
@@ -1034,7 +1076,11 @@ if idx
         for i2 = 2:Markers.nsegs(cidx)
             idx_count = idx_count + 1;
             x = [Markers.all{cidx},'_',num2str(i2)];
-            [v3{idx_count},~] = readtxt(filename,x, vars, wd, layers);
+            [v3{idx_count},units3] = readtxt(filename,x, vars, wd, layers); %#ok<AGROW>
+            if ~strcmp(units3, units(cidx))
+                e_code = 16;
+                return
+            end
         end
    end
 end
@@ -1072,7 +1118,7 @@ for i3 = length(Markers.lin)+1:length(Markers.all)
         for i5 = 2:nsegs(i4)
             i6 = i6 + 1;
             v3_count = length(Markers.all) + i6;
-            tbl = [tbl;v{v3_count}];
+            tbl = [tbl;v{v3_count}]; %#ok<AGROW>
         end
         C.(Markers.expr{i4}) = tbl;
     else
@@ -1232,9 +1278,6 @@ imageinfo = imfinfo(iname);
 W = imageinfo.Width;
 H = imageinfo.Height;
 scalea = 10^4 *(1/imageinfo(1).XResolution); % UM/PX
-[~, loc] = ismember(Markers.lin, Markers.all);
-unit_name = repmat({'pixels'}, length(Markers.all),1);
-unit_name(loc) = units;
 %
 % get only the postive cells from each phenotype
 %
@@ -1257,7 +1300,7 @@ for i3 = 1:length(Markers.all)
         %
         dat2.Phenotype = repmat({mark},height(dat2),1);
         %
-        if strcmp(unit_name{i3},'microns')
+        if strcmp(units{i3},'microns')
             fx = (dat2.fx - scalea*(W/2)); %microns
             fy = (dat2.fy - scalea*(H/2)); %microns
             dat2.CellXPos = floor(1/scalea .* (dat2.CellXPos - fx));
@@ -1271,7 +1314,7 @@ end
 % create a set of others
 %
 dat2 = C.(Markers.seg{1});
-[~,loc] = ismember(Markers.seg, Markers.lin);
+[~,loc] = ismember(Markers.seg, Markers.all);
 %
 if ~isempty(dat2)
     %
@@ -2234,7 +2277,7 @@ end
 % ImageLoop for QC output
 %% --------------------------------------------------------------
 %%
-function mktmp = parsave(fData,fname,Markers,wd)
+function mktmp = parsave(fData, fname, Markers, wd, imall)
 %
 % first check that there are enough columns to match the 9 color protocol
 %
@@ -2300,7 +2343,7 @@ if ~isempty(Markers.Tumor{1})
 else
     r = ones(height(fData.fig));
 end
-if length(fData.fig.CellID) > 400 && length(find(r)) > 60
+if (length(fData.fig.CellID) > 400) && (imall || (length(find(r)) > 60))
     fname2 = strcat(wd,'\Phenotyped\Results\tmp_ForFiguresTables\',...
         extractBefore(fname.name,']_cell_seg'),...
         ']_cleaned_phenotype_table.mat');
