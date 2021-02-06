@@ -25,7 +25,7 @@ errors = cell(1,1);
 % get Markers structure
 %
 try
-    Markers = createmarks(MergeConfig);
+    [Markers,~] = createmarks(MergeConfig);
 catch
     errors2 = ['Error in ',sname, ': check Batch ID files.'];
     disp(errors2);
@@ -62,7 +62,7 @@ fds = {fnames(:).folder};
 %
 % loop through the seg function for each sample with error catching
 %
-parfor i1 = 1:length(fnames)
+parfor i1 = 1:length(nms)
     %
     wd1 = fullfile(fds{i1},nms{i1});
     a = readtable(wd1);
@@ -295,30 +295,34 @@ end
 %%% structure
 %% --------------------------------------------------------------
 %%
-function[Markers] = createmarks(MergeConfig)
+function [Markers, err_val] = createmarks(MergeConfig)
 %
 warning('off','MATLAB:table:ModifiedAndSavedVarnames')
+Markers = [];
 %
 try
     BIDtbl = readtable(MergeConfig);
     B = BIDtbl(:,{'Opal','Target',...
     'TargetType','CoexpressionStatus','SegmentationStatus',...
-    'SegmentationHierarchy', 'ImageQA_QC', 'NumberofSegmentations'});
+    'SegmentationHierarchy', 'ImageQA', 'NumberofSegmentations'});
 catch
+    err_val = 1;
     return
 end
 %
-% remove DAPI row
+% check table input variables
 %
-dr = strcmp(B.Opal, 'DAPI');
-B(dr,:) = [];
+[B, err_val] = checkTableVars(B);
+if ~ismember(err_val, [0,2])
+    return
+end
 %
 % start setting up Markers struct
 %
 Markers.Opals = B.Opal;
 Markers.all = B.Target;
 %
-ii = strcmp('Tumor',B.ImageQA_QC);
+ii = strcmp('Tumor',B.ImageQA);
 Markers.all_original = Markers.all;
 %
 % change Tumor marker designation to 'Tumor'
@@ -327,7 +331,7 @@ if sum(ii) == 1
     Markers.all(ii) = {'Tumor'};
     Markers.Tumor{1} = 'Tumor';
 elseif sum(ii) > 1
-    Markers.Tumor =  ' MaSS must have only one "Tumor" designation';
+    err_val = 6;
     return
 else
      Markers.Tumor{1} = '';
@@ -345,11 +349,12 @@ Markers.expr = Markers.all(ET);
 % capability on expression markers
 %
 nsegs = B.NumberofSegmentations;
-nsegs = cellfun(@(x) str2double(x), nsegs, 'Uni',0);
-nsegs = cell2mat(nsegs);
-if find(nsegs(~ET) ~= 1)
-     Markers.nsegs =  [' MaSS can only handle expression markers',...
-         ' with multiple segmentations'];
+if iscell(nsegs)
+    nsegs = cellfun(@(x) str2double(x), nsegs, 'Uni',0);
+    nsegs = cell2mat(nsegs);
+end
+if find(nsegs(~ET) > 1)
+    err_val = 7;
     return
 end
 Markers.nsegs = nsegs;
@@ -358,10 +363,11 @@ Markers.nsegs = nsegs;
 % the primary segmentation
 %
 SS = B.SegmentationStatus;
-SS = cell2mat(SS);
-SS = str2num(SS);
-SS = SS(nsegs == 1);
-mn = Markers.all(nsegs == 1);
+Markers.SegStatus = SS;
+%
+ii = nsegs == 1 & ~ismember(Markers.all,Markers.expr);
+SS = SS(ii);
+mn = Markers.all(ii);
 %
 % get number of different segmentations, remove markers with multiple
 % segmentations from the contention
@@ -380,7 +386,7 @@ end
 % get coexpression status for lineage markers
 %
 CS = B.CoexpressionStatus(LT);
-ii = ~strcmp(CS,'NA');
+ii = ~strcmp(CS,'NA') | ~strcmp(CS,'NaN');
 CS = CS(ii);
 %
 % track the corresponding target
@@ -433,7 +439,7 @@ for i1 = 1:length(CS)
                 ii = strcmp(T, Markers.lin);
                 seg2 = Markers.SegHie(ii);
                 %
-                seg = max([str2num(seg1{1}),str2num(seg2{1})]);
+                seg = max([str2double(seg1{1}),str2double(seg2{1})]);
                 sego{track} = num2str(seg);
             end
         end
@@ -454,11 +460,10 @@ for i1 = 1:length(CS)
     Markers.Coex{i1} = sum(x,2);
 end
 %
+% reformat for proper dims
 %
-%
-Markers.Opals = cell2mat(Markers.Opals);
-Markers.Opals = str2num(Markers.Opals);
-%
+Markers.Opals = cellfun(@str2double, Markers.Opals, 'Uni',0);
+Markers.Opals = cell2mat(Markers.Opals)';
 Markers.all = Markers.all';
 Markers.all_original = Markers.all_original';
 Markers.lin = Markers.lin';
@@ -467,8 +472,108 @@ Markers.nsegs = Markers.nsegs';
 Markers.seg = Markers.seg';
 Markers.altseg = Markers.altseg';
 Markers.SegHie = Markers.SegHie';
+%
 end
-
+%
+function [B, err_val] = checkTableVars(B)
+%%
+% check the table variables to be sure they are in the correct format for
+% the code. If they are not convert them.
+%%
+%
+err_val = 0;
+%
+% check the data type for Opal column
+%
+if isa(B.Opal,'double')
+   %
+   % if B.Opal is a 'double' convert to a string 
+   %
+   tmpopal = num2cell(B.Opal);
+   tmpopal = cellfun(@(x) num2str(x), tmpopal, 'Uni', 0);
+   ii = strcmp(tmpopal, 'NaN');
+   %
+   if sum(ii) > 1
+      err_val = 2;
+      ii = find(ii,1);
+   end
+   %
+   tmpopal(ii) = {'DAPI'};
+   ss = size(tmpopal);
+   if ss(1) == 1
+       B.Opal = tmpopal';
+   else
+       B.Opal = tmpopal;
+   end
+end
+%
+if ~isa(B.Opal, 'cell')
+  err_val = 3;
+  return
+end
+%
+% check the data type for the coexpression status column
+%
+if isa(B.CoexpressionStatus,'double')
+   %
+   % if B.Opal is a 'double' convert to a string 
+   %
+   tmpCS = num2cell(B.CoexpressionStatus);
+   tmpCS = cellfun(@(x) num2str(x), tmpCS, 'Uni', 0);
+   %
+   for i1 = 1:length(tmpCS)
+       tmpCS_n = tmpCS{i1};
+       if length(tmpCS_n) > 3
+           ii = 3:3:length(tmpCS_n) - 1;
+           t(1:length(tmpCS_n)) = char(0);
+           t(ii) = ',';
+           tmpCS_n = [tmpCS_n;t];
+           tmpCS_n = reshape(tmpCS_n(tmpCS_n ~= 0),1,[]);
+           tmpCS{i1} = tmpCS_n;
+       end
+   end
+   %
+   B.CoexpressionStatus = tmpCS;
+   %
+end
+%
+B.CoexpressionStatus = cellfun(@(x) replace(x, ',',''),...
+      B.CoexpressionStatus, 'Uni',0);
+%
+if ~isa(B.Opal, 'cell')
+    err_val = 4;
+end
+%
+% remove the DAPI row
+%
+dr = strcmp(B.Opal, 'DAPI');
+if sum(dr) ~= 1
+    err_val = 5;
+end
+B(dr,:) = [];
+%
+% check the last 3 columns are all set as numeric
+%
+SS = B.SegmentationStatus;
+if iscell(SS)
+    %SS = cell2mat(SS);
+    B.SegmentationStatus = str2double(SS);
+end
+%
+SH = B.SegmentationHierarchy;
+if ~iscell(SS)
+    SH = num2str(SH);
+    SH = cellstr(SH);
+    B.SegmentationHierarchy = SH;
+end
+%
+SS = B.NumberofSegmentations;
+if iscell(SS)
+    %SS = cell2mat(SS);
+    B.NumberofSegmentations = str2double(SS);
+end
+%
+end
 %% function: createlog; Create error log for images in segmentation protocol
 %% --------------------------------------------------------------
 %% Created by: Benjamin Green - Johns Hopkins - 01/18/2019
