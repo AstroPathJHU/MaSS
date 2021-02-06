@@ -99,16 +99,16 @@ Merge Configuration file is a csv spreadsheet which indicates how the markers wi
 10. Colors```[string]```: specify the colors for the create image qa qc protocol. Colors can be specified by the first letter of the colors or by the color name.
 
 ## ***Section 5: Image and Table File Structure***
-The code relies on a data organization format detailed below:
+The code relies on a data organization format detailed below:<br>
 +--	DIR\ inform_data <br>
-| +-- Phenotyped:	add a folder for each  Antibody (ABx) in the panel
-| | +-- ABX1 (e.g.	CD8)
-| | +-- ABX2 (e.g.CD163)
-| | +-- ABX3 (e.g.FoxP3)
-| | +-- ABX4 (e.g.	Tumor)
-| | +-- ABX5 (e.g.PD1)
-| | +--ABX6 (e.g.PDL1)
-| +-- Component_Tiffs
+| +-- Phenotyped:	add a folder for each  Antibody (ABx) in the panel<br>
+| | +-- ABX1 (e.g.	CD8)<br>
+| | +-- ABX2 (e.g.CD163)<br>
+| | +-- ABX3 (e.g.FoxP3)<br>
+| | +-- ABX4 (e.g.	Tumor)<br>
+| | +-- ABX5 (e.g.PD1)<br>
+| | +--ABX6 (e.g.PDL1)<br>
+| +-- Component_Tiffs<br>
 
 - The antibody names here should correspond to those names used in the BatchID table. 
   - The only exception is the ‘Tumor’ marker which, if designated in the ImageQA column of the merge configuration table, should be label ‘Tumor’ here. 
