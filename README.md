@@ -186,7 +186,32 @@ The code also produces a folder named ```*\Results\tmp_inform_data```, which con
 
 ## ***Section 8:	Image QA QC utility***
 ### Section 8.1 Description/ running instructions
-In order to assess the performance of the cell phenotype algorithms on a large quantity of images, an algorithm was developed to selectively sample images and create modified visual displays of those images. This algorithm is a secondary program which must be downloaded and installed separately, it is called CreateImageQAQC. This code must be run after the MaSS protocol as it relies on the tmp_inform_data directory the MaSS tool creates. The code is also relatively simple to run from a cmd prompt using the following:
-CALL "C:\Program Files\Astropath\ CreateImageQAQC \application \ CreateImageQAQC.exe" "*DIR \inform_data\Phenotyped" "MXX" “*DIR \BatchID_XX.xlsx”
-Again replacing *DIR with the corresponding paths, MXX with the sample name, and BatchID_XX with the name of the batch file. Unless changed during installation the path to the executable will be ‘C:\Program Files\Astropath\MaSS\application’. If the installation path is different, this should also be changed.
+In order to assess the performance of the cell phenotype algorithms on a large quantity of images, an algorithm was developed to selectively sample images and create modified visual displays of those images. This algorithm is a secondary application which must be downloaded and installed separately, it is called CreateImageQAQC. This code must be run after the MaSS protocol as it relies on the tmp_inform_data directory the MaSS tool creates. The code is relatively simple to run from a cmd prompt using the following:
 
+- CALL "C:\Program Files\Astropath\ CreateImageQAQC \application \ CreateImageQAQC.exe" "*DIR \inform_data\Phenotyped" "MXX" “*DIR \BatchID_XX.xlsx”
+
+Replace ```*DIR``` with the corresponding paths, ```MXX``` with the sample name, and ```MergeConfig_XX``` with the name of the merge configuration file. Unless changed during installation the path to the executable will be ```‘C:\Program Files\Astropath\MaSS\application’```. If the installation path is different, this should also be changed. 
+
+The .mat file is also available in the github directory for use in matlab. 
+
+### Section 8.2 Workflow Description
+The code first selects images for quality control based on user specifications. Only, images containing at least 60 tumor cells and images with at least 75 percent tissue coverage are considered for each sample. If a tumor cell designation is not included in the BatchID table, the tumor cell search criteria is removed. If less than 20 fields in the sample meet the search criteria, the minimum tissue coverage requirement is reduced by 6.25 percent. This is repeated until 20 fields meet the search criteria or the field tissue coverage search criteria decreases below 50 percent. If 20 fields or less than 20 fields are selected then performance testing is carried out on all fields. If more than 20 fields are selected, then the 20 highest designated ‘Immune’ cell density fields are selected for performance testing.
+
+To assess assigned co-expression, pie charts are created to show cell proportions in each field, shown on the left. The first pie chart shows portions of all cells in the field, while the others display the proportion of cell lineages expressing each expression marker type. In this way, it is easy to see if expression patterns assigned correlate with current biological understanding of antibody performance. A heat map of log2 detected mean intensity in cells vs their assigned lineage phenotypes is also generated. When the phenotype algorithms are performing correctly high opal intensity should correlate with the marker it is labeling. For example, CD8 is labeled by Opal 540, if the phenotype is performing well there should be high intensity in the Opal 540 - CD8 rectangle. 
+
+While these metrics aid in performance assessment, visual inspection is the final verdict. To do this cell stamp mosaics are generated for each marker. In each mosaic, 50 cell stamps are randomly sampled from the image, 25 of which were centered on positive cells and 25 centered on negative cells. In these image stamps, the image segmentation in red as well as a grey scale of the component being detected is displayed. In order to assess the global context and performance of cells in each image, full size composite images are also generated. Full size composites are generated displaying each antibody separately as well as together, both with and without the segmentation overlaid on top. 
+
+### Section 8.3 Output
+
+The code creates output into a QA_QC subfolder under the ```*DIR\MXX\inform_data\Phenotyped\Results``` folder created in the MaSS protocol. 
+| +-- Tables_QA_QC
+      - These are the MaSS results tables for these images, placed here for referencing convience if further testing is desired.
+| +-- ImageQA_QCLog.txt
+      - This log file details the number of hotspot fields chosen, as well as time stamps for the image output, the figure output, and completion time of the program. 
+| +-- Phenotype
+| | +-- All_Markers: three types of image output, designated by the following extensions after the image coordinate brackets
+        - ‘_cleaned_phenotype_image’
+        - This image shows the full image with all component layers 
+        - The color-marker pairs are indicated in the bottom left hand corner of the image
+        -	Assigned phenotypes are indicated by the dots overlaid on the sample
+        -	Lineage markers assignment is designated by the color of the circle while expression markers are by the horizontal strips of each cell
