@@ -101,6 +101,7 @@ Merge Configuration file is a csv spreadsheet which indicates how the markers wi
 ## ***Section 5: Image and Table File Structure***
 The code relies on a data organization format detailed below:<br>
 +--	DIR\ inform_data <br>
+| +-- Component_Tiffs<br>
 | +-- Phenotyped:	add a folder for each  Antibody (ABx) in the panel<br>
 | | +-- ABX1 (e.g.	CD8)<br>
 | | +-- ABX2 (e.g.CD163)<br>
@@ -108,9 +109,9 @@ The code relies on a data organization format detailed below:<br>
 | | +-- ABX4 (e.g.	Tumor)<br>
 | | +-- ABX5 (e.g.PD1)<br>
 | | +--ABX6 (e.g.PDL1)<br>
-| +-- Component_Tiffs<br>
 
-- The antibody names here should correspond to those names used in the BatchID table. 
+
+- The antibody names here should correspond to those names used in the merge configuration table. 
   - The only exception is the ‘Tumor’ marker which, if designated in the ImageQA column of the merge configuration table, should be label ‘Tumor’ here. 
 - If the folder names do not correspond to the Target names the code will produce an error to check the inform files
   - Note: these names are all case sensitive
@@ -203,13 +204,13 @@ While these metrics aid in performance assessment, visual inspection is the fina
 
 ### Section 8.3 Output
 
-The code creates output into a QA_QC subfolder under the ```*DIR\MXX\inform_data\Phenotyped\Results``` folder created in the MaSS protocol. 
-| +-- Tables_QA_QC
+The code creates output into a QA_QC subfolder under the ```*DIR\MXX\inform_data\Phenotyped\Results``` folder created in the MaSS protocol. <br>
+| +-- Tables_QA_QC<br>
       - These are the MaSS results tables for these images, placed here for referencing convience if further testing is desired.
-| +-- ImageQA_QCLog.txt
+| +-- ImageQA_QCLog.txt<br>
       - This log file details the number of hotspot fields chosen, as well as time stamps for the image output, the figure output, and completion time of the program. 
-| +-- Phenotype
-| | +-- All_Markers: three types of image output, designated by the following extensions after the image coordinate brackets
+| +-- Phenotype<br>
+| | +-- All_Markers: three types of image output, designated by the following extensions after the image coordinate brackets<br>
         - ‘_cleaned_phenotype_image’
         - This image shows the full image with all component layers 
         - The color-marker pairs are indicated in the bottom left hand corner of the image
