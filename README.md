@@ -143,7 +143,9 @@ The executable is available on github either as a matlab function or as a deploy
      - open the project or algorithm in inForm Cell Analysis®
      - add and process an image to the export tab 
      - click all segmentation layers to be visible and save the algorithm again, then use this algorithm to export the phenotype analysis
+     
 ##***Section 7:	Output***
+
 The code outputs results tables into a ```*DIR\ inform_data\Phenotyped\Results\Tables``` folder which is created upon startup. The resultant tables have the same name as their corresponding images but contain the extension: ```*_cleaned_phenotype_table.csv``` after their image coordinates. The code also creates a MaSS.log file in this folder.
 This table contains 62 columns: 
    - CellID – a unique cell id for each cell
@@ -182,3 +184,10 @@ This table contains 62 columns:
       - 690: 128
       - 780: 256
 The code also produces a folder named ```*\Results\tmp_inform_data```, which contains .mat files for the images that meet the Image QA criteria, detailed below. These .mat files contain a copy of the ```*_cleaned_phenotype_table.csv``` in an easily accessible MATLAB format.
+
+##***Section 8:	Image QA QC utility***
+### Section 8.1 Description/ running instructions
+In order to assess the performance of the cell phenotype algorithms on a large quantity of images, an algorithm was developed to selectively sample images and create modified visual displays of those images. This algorithm is a secondary program which must be downloaded and installed separately, it is called CreateImageQAQC. This code must be run after the MaSS protocol as it relies on the tmp_inform_data directory the MaSS tool creates. The code is also relatively simple to run from a cmd prompt using the following:
+CALL "C:\Program Files\Astropath\ CreateImageQAQC \application \ CreateImageQAQC.exe" "*DIR \inform_data\Phenotyped" "MXX" “*DIR \BatchID_XX.xlsx”
+Again replacing *DIR with the corresponding paths, MXX with the sample name, and BatchID_XX with the name of the batch file. Unless changed during installation the path to the executable will be ‘C:\Program Files\Astropath\MaSS\application’. If the installation path is different, this should also be changed.
+
