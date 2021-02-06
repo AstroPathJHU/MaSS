@@ -204,15 +204,15 @@ While these metrics aid in performance assessment, visual inspection is the fina
 
 ### Section 8.3 Output
 
-The code creates output into a QA_QC subfolder under the ```*DIR\MXX\inform_data\Phenotyped\Results``` folder created in the MaSS protocol. <br>
-| +-- Tables_QA_QC<br>
-      - These are the MaSS results tables for these images, placed here for referencing convience if further testing is desired.
-| +-- ImageQA_QCLog.txt<br>
-      - This log file details the number of hotspot fields chosen, as well as time stamps for the image output, the figure output, and completion time of the program. 
-| +-- Phenotype<br>
-| | +-- All_Markers: three types of image output, designated by the following extensions after the image coordinate brackets<br>
-        - ‘_cleaned_phenotype_image’
-        - This image shows the full image with all component layers 
-        - The color-marker pairs are indicated in the bottom left hand corner of the image
-        -	Assigned phenotypes are indicated by the dots overlaid on the sample
-        -	Lineage markers assignment is designated by the color of the circle while expression markers are by the horizontal strips of each cell
+The code creates output into a QA_QC subfolder under the ```*DIR\MXX\inform_data\Phenotyped\Results``` folder created in the MaSS protocol.
+- Tables_QA_QC
+  - These are the MaSS results tables for these images, placed here for referencing convience if further testing is desired.
+- ImageQA_QCLog.txt
+  - This log file details the number of hotspot fields chosen, as well as time stamps for the image output, the figure output, and completion time of the program. 
+- Phenotype
+  - All_Markers: three types of image output, designated by the following extensions after the image coordinate brackets
+    - ‘_cleaned_phenotype_image’
+    - This image shows the full image with all component layers 
+    - The color-marker pairs are indicated in the bottom left hand corner of the image
+    -	Assigned phenotypes are indicated by the dots overlaid on the sample
+    -	Lineage markers assignment is designated by the color of the circle while expression markers are by the horizontal strips of each cell
