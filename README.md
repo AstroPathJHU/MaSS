@@ -204,15 +204,45 @@ While these metrics aid in performance assessment, visual inspection is the fina
 
 ### Section 8.3 Output
 
-The code creates output into a QA_QC subfolder under the ```*DIR\MXX\inform_data\Phenotyped\Results``` folder created in the MaSS protocol.
-- Tables_QA_QC
+The code creates output into a QA_QC subfolder under the ```*DIR\MXX\inform_data\Phenotyped\Results``` folder created in the MaSS protocol. For the images, the color-marker pairs are indicated in the bottom left hand corner of the image. Assigned phenotypes are indicated by the dots overlaid on the sample. Lineage markers assignment is designated by the color of the circle while expression markers are by the horizontal strips of each cell. Coexpressing lineages are designated by half dots where the top half indicates one marker and the bottom half indicates the other.
+
+- Tables_QA_QC (subfolder):
   - These are the MaSS results tables for these images, placed here for referencing convience if further testing is desired.
 - ImageQA_QCLog.txt
   - This log file details the number of hotspot fields chosen, as well as time stamps for the image output, the figure output, and completion time of the program. 
-- Phenotype
-  - All_Markers: three types of image output, designated by the following extensions after the image coordinate brackets
+- Phenotype (subfolder):
+  - All_Markers (subfolder): three types of image output, designated by the following extensions after the image coordinate brackets
     - ‘_cleaned_phenotype_image’
-    - This image shows the full image with all component layers 
-    - The color-marker pairs are indicated in the bottom left hand corner of the image
-    -	Assigned phenotypes are indicated by the dots overlaid on the sample
-    -	Lineage markers assignment is designated by the color of the circle while expression markers are by the horizontal strips of each cell
+      - This image shows the full image with all component layers 
+        ![Figure 5 Image](www/Fig5.png)
+    -	‘_cleaned_phenotype_w_seg’
+      - This is image is the same as the image in ‘b’ except that is has the segmentation overlaid on top 
+        ![Figure 6 Image](www/Fig6.png)
+    -	‘_composite_image’
+      - This image displays the full image with all component layers but without the dots indicating phenotype
+        ![Figure 7 Image](www/Fig7.png)
+  - There will also be a sub folder for each lineage and expression marker designated
+    - This includes a folder for any combination lineage markers designated in the ‘CoexpressionStatus’ from the merge configuration table
+    - In these folders output is shown to assess the performance of that marker
+    - There are four types of images, designated by the following strings after the image names
+      -	‘_cell_stamp_mosaics_pos_neg’
+        -	These are mosaics of cell stamps, which include the cell segmentation, DAPI, and a grey scale of the component expression overlaid
+        -	Up to 25 positive cells for the selected marker are randomly sampled with 25 negative cells
+          -	If more than 25 cells of this type do not exist in the image, all cells are then sampled
+        -	A 50x50 pixel board has been cut out around the cell so that the cell of interest in the middle of the cell stamp
+        -	The white crosses indicate positive cells for the marker of interest
+          ![Figure 8 Image](www/Fig8.png)
+      -	‘_cell_stamp_mosaics_pos_neg_no_dapi’
+        -	These mosaics are the same as previously described with DAPI removed to increase visibility
+        -	The white crosses indicate positive cells for the marker of interest 
+        ![Figure 9 Image](www/Fig9.png)
+      -	‘_full_color_expression_image’
+        -	Full image with all component layers and segmentation overlaid
+        -	The color-marker pairs are indicated in the bottom left hand corner of the image
+        -	The white crosses indicate positive cells for the marker of interest 
+        ![Figure 10 Image](www/Fig10.png)
+      -	‘_single_color_expression_image’
+        -	Full image  of the component layer of the marker of interest in grey scale, DAPI, and segmentation overlaid
+        -	The white crosses indicate positive cells for the marker of interest 
+        ![Figure 11 Image](www/Fig11.png)
+
