@@ -60,7 +60,7 @@
 %%
 function CreateImageQAQC(wd, uc, MergeConfig, logstring, allimages)
 %
-version = '0.01.0001';
+version = '1.00.0001';
 if nargin < 4
     logstring = '';
 end
