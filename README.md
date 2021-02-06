@@ -143,3 +143,42 @@ The executable is available on github either as a matlab function or as a deploy
      - open the project or algorithm in inForm Cell Analysis®
      - add and process an image to the export tab 
      - click all segmentation layers to be visible and save the algorithm again, then use this algorithm to export the phenotype analysis
+##***Section 7:	Output***
+The code outputs results tables into a ```*DIR\ inform_data\Phenotyped\Results\Tables``` folder which is created upon startup. The resultant tables have the same name as their corresponding images but contain the extension: ```*_cleaned_phenotype_table.csv``` after their image coordinates. The code also creates a MaSS.log file in this folder.
+This table contains 62 columns: 
+   - CellID – a unique cell id for each cell
+   - SlideID – the slide name
+   - fx & fy – x and y pixel coordinates of the field centers
+   - CellNum – the inForm Cell Analysis® unique cell id ( which may be rendered non-unique if  multiple segmentation algorithms are used)
+   - Phenotype – cell lineage classification string corresponding to Lineage ‘TargetType’ ( described in the BatchID section)
+     - Each cell will have only one phenotype lineage unless it is included in a ‘CoexpressionStatus’ lineage pair in the BatchID table (described further in the BatchID section)
+     - In this case the phenotype will be presented as a string of ‘highest opal antibody’’lowest opal antibody’ 
+     - Ex:
+       - CD8 – 540; FoxP3 – 570
+       - ‘FoxP3CD8’ 
+   - CellXPos & CellYPos – cell x and y pixel coordinates relative to the image
+   - EntireCellArea – Area of the cell in pixels
+   - Next are the intensity columns for each cell: 
+     - For each opal there will be columns named as follows – where XXX is the opal number DAPI, 480, 520, 540, 570, 620, 650, 690, 780
+       - MeanNucleusXXX 
+       - MeanMembraneXXX
+       - MeanEntireCellXXX
+       - MeanCytoplasmXXX
+       - TotalNucleusXXX 
+       - TotalMembraneXXX
+       - TotalEntireCellXXX
+       - TotalCytoplasmXXX
+     - The columns are ordered by category and then opal such that all MeanNucleusXXX columns come before MeanMembraneXXX columns and so on
+     - These columns may contain NULL values but are otherwise float32
+     - A negative 1 value indicates that the opal was not used in the panel
+    - ExprPhenotype - the expression marker bit integer value, the values correspond as follows
+      - DAPI: 0
+      - 480: 2
+      - 520: 4
+      - 540: 8
+      - 570: 16
+      - 620: 32
+      - 650: 64
+      - 690: 128
+      - 780: 256
+The code also produces a folder named ```*\Results\tmp_inform_data```, which contains .mat files for the images that meet the Image QA criteria, detailed below. These .mat files contain a copy of the ```*_cleaned_phenotype_table.csv``` in an easily accessible MATLAB format.
