@@ -96,7 +96,9 @@ Merge Configuration file is a csv spreadsheet which indicates how the markers wi
        - This is an optional field and will tell the code to narrow down the QA to fields to only include those with more than 60 of this cell type
        - There can be only one cell of this type
     -	Only set one marker as ‘Immune’ and only one marker as ‘Tumor’
-10. Colors```[string]```: specify the colors for the create image qa qc protocol. Colors can be specified by the first letter of the colors or by the color name.
+10. Colors```[string]```: specify the colors for the create image qa qc protocol. Colors can be specified by the color name or abbreviations below.
+    - Options: 'red','green','blue','cyan', 'magenta','yellow','white','black','orange','coral'
+    - Abbreviations: 'r','g','b','c','m','y','w','k','o','l'
 
 ## ***Section 5: Image and Table File Structure***
 The code relies on a data organization format detailed below:<br>
