@@ -65,8 +65,7 @@ Merge Configuration file is a csv spreadsheet which indicates how the markers wi
         - For this marker, use 'Tumor' to desgnate the output folder
         - Optionally: use 'Tumor' when desgniating that antibody in inForm. 
         - Must use same name for phenotype and opal namings
-4. TargetType```string]```:
-   - 'Lineage' or 'Expression'
+4. TargetType```string]```: 'Lineage' or 'Expression'
    - 'Lineage'
      - use this to denote markers that define the cell type\ function (e.g. Macrophages, TCells, Tumor cells, Tregs)
    - 'Expression':
@@ -76,20 +75,17 @@ Merge Configuration file is a csv spreadsheet which indicates how the markers wi
      - e.g. PD1(650) may co-expresses predominantly with CD8 (540) and FoxP3 (570), add 540,570 to this input for PD1
    - *Lineage markers*: input the opal dyes of **other Lineage marker(s)** that will be allowed to co-express with the specified marker
      - e.g. if CD8+ (540) - FoxP3+ (570) cells are accepted; in the CD8 row add “570” for FoxP3 and in the FoxP3 row add “540” for CD8
-6. SegmentationStatus```[int]```: 
-   - This is a numeric value; 1-X for the different types of segmentation that may exist, each marker with the same number should be processed with the same cell segmentation algorithm in inform
+6. SegmentationStatus```[int]```: This is a numeric value; 1-X for the different types of segmentation that may exist, each marker with the same number should be processed with the same cell segmentation algorithm in inform
    - e.g. for a specified panel all markers may have the same segmentation and would have (1)s except Tumor which would have (2)s
    -	The primary segmentation (1) should be the more reliable algorithm and usually correspond to smaller cells
    -	“Other” cells will be defined by the primary segmentation (1)
-7. SegmentationHierarchy```[int]```: 
-   - For Lineage markers only; create an order of phenotypes/ segmentation you believe will be most accurate – this is primarily based off of cell morphology 
+7. SegmentationHierarchy```[int]```: *For Lineage markers only*; create an order of phenotypes/ segmentation you believe will be most accurate – this is primarily based off of cell morphology 
    -	Use NA for expression markers
    -	The code will remove cells according to this column
      - lower cells take precedence over higher number cells when they collide
      - e.g.: A cell given a positive phenotype for CD8 in the CD8 algorithm and positive for CD163 in the CD163 algorithm; if CD8 (1) is ranked higher than CD163 (2) then the CD163 designation will be removed
    - Only cells that are allowed co-expression should have the same number. If two cells co-express with the same cell but not each other (CD4-FoxP3 and CD8-FoxP3); use the higher number for one of the two cells (CD4 or CD8) and the double co-expressed cell (FoxP3). Use a lower number for the other cell (CD4 or CD8). In the example with CD8-CD4-FoxP3 we usually use the numbers 1-2-1. CD4-FoxP3 will still be found based off of co-expression status but CD8-FoxP3 cells will take precedence.
-8.	NumberofSegmentations 
-    - this value indicates how many segmentations were used for each antibody
+8.	NumberofSegmentations```[int]```: this value indicates how many segmentations were used for each antibody
     - as of the current update this setting is only supported on markers designated as ‘expression’
     - lineage cells that are from separate segmentations but are allowed to coexpress will create unexpected results 
 9.	ImageQA```[string]```: This column allows a user to set 2 different conditions of the batch
