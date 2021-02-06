@@ -144,8 +144,7 @@ The executable is available on github either as a matlab function or as a deploy
      - add and process an image to the export tab 
      - click all segmentation layers to be visible and save the algorithm again, then use this algorithm to export the phenotype analysis
      
-##***Section 7:	Output***
-
+## ***Section 7:	Output***
 The code outputs results tables into a ```*DIR\ inform_data\Phenotyped\Results\Tables``` folder which is created upon startup. The resultant tables have the same name as their corresponding images but contain the extension: ```*_cleaned_phenotype_table.csv``` after their image coordinates. The code also creates a MaSS.log file in this folder.
 This table contains 62 columns: 
    - CellID – a unique cell id for each cell
