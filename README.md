@@ -103,3 +103,47 @@ Merge Configuration file is a csv spreadsheet which indicates how the markers wi
 10. Colors```[string]```: specify the colors for the create image qa qc protocol. Colors can be specified by the first letter of the colors or by the color name.
 
 ## ***Section 5: Image and Table File Structure***
+The code relies on a data organization format detailed below:
++--	DIR\ inform_data
+| +-- Phenotyped:	add a folder for each  Antibody (ABx) in the panel
+| | +-- ABX1 (e.g.	CD8)
+| | +-- ABX2 (e.g.CD163)
+| | +-- ABX3 (e.g.FoxP3)
+| | +-- ABX4 (e.g.	Tumor)
+| | +-- ABX5 (e.g.PD1)
+| | +--ABX6 (e.g.PDL1)
+| +-- Component_Tiffs
+
+- The antibody names here should correspond to those names used in the BatchID table. 
+  - The only exception is the ‘Tumor’ marker which, if designated in the ImageQA column of the merge configuration table, should be label ‘Tumor’ here. 
+- If the folder names do not correspond to the Target names the code will produce an error to check the inform files
+  - Note: these names are all case sensitive
+
+In each corresponding antibody folder, export the cell segmentation data tables, *_cell_seg_data.txt*, that inForm outputs for a phenotype analysis. In the lowest numeric Opal of each segmentation type (described in the [merge configuration section](#section-4-merge-configuration-file-structure "Title")), also export the binary segmenation maps, *_binary_seg_maps.tif*, from inForm. These are label matricies corresponding to the cells. Please be sure these files have four layers:
+1. Tissue Segmentation
+2. Nuclear Segmentation
+3. Cytoplasmic Segmentation
+4. Membrane Segmentation
+
+Finally, add all the Component data, *_component_data.tiff*, images from the inForm Cell Analysis ® export for each field analyzed into the *Component_Tiffs* folder
+
+## ***Section 6: Installation and how to run***
+The executable is available on github either as a matlab function or as a deployable application. The inputs to both are the same, here we only describe the instructions for uses as a deployable application.
+1.	install the application on the desired computer by opening the distributed file ‘MaSS Installer.exe’ and following the onscreen prompts. MATLAB does not need to be installed for the software to work.
+   - The installer will download and install a version of MATLAB runtime if it is not already installed on the computer. Note that the code will run off of whatever drive the runtime is installed on. Furthermore, if the runtime is installed on the wrong drive, using windows, uninstall the application and MATLAB runtime instance, then reinstall 
+2.	Once installed, pass the following call to the cmd prompt: 
+   - ```CALL "C:\Program Files\Astropath\MaSS\application \MaSS.exe" "*DIR \inform_data" "MXX" “*DIR \MergeConfig_XX.xlsx”```
+   - Replace ```*DIR``` with the corresponding paths, ```MXX``` with the sample name, and ```MergeConfig_XX``` with the name of the merge configuration file. Unless changed during installation the path to the executable will be ```‘C:\Program Files\Astropath\MaSS\application’```. If the installation path is different, this should also be changed. Once started, the code will generate a resulting .csv for every image on the ```inform_data``` folder
+3. Tips for defining file structure, generating files, and creating projects
+   - Be sure to name the opals on the prepare tab in inForm Cell Analysis®.  	
+   - When naming the opals, use the same names as indicated in the file structure and the ‘Target’ column of the BatchID table. 
+   -	The labels in inForm will not be case sensitive
+   -	For the Tumor marker, indicated by column 14, use the designation ‘Tumor’ instead of the full name, this is only required when creating the output folders, but may be useful in all aspects of this analysis
+   -	Refrain from using any illegal characters like ‘\’ or ‘-‘ 
+   - When creating the tissue segmentation, include at least two categories labeling one as ‘NonTissue’
+   - When creating the cell segmentation algorithm be sure to check the boxes for ‘Membrane’, ‘Nucleus’, and ‘Cytoplasm’
+   -	For the membrane segmentation outputs be sure that there are 4 layers 
+   - *if inForm Cell Analysis® is not exporting all layers to binary segmentation*
+     - open the project or algorithm in inForm Cell Analysis®
+     - add and process an image to the export tab 
+     - click all segmentation layers to be visible and save the algorithm again, then use this algorithm to export the phenotype analysis
