@@ -100,7 +100,7 @@ Merge Configuration file is a csv spreadsheet which indicates how the markers wi
 
 ## ***Section 5: Image and Table File Structure***
 The code relies on a data organization format detailed below:
-+--	DIR\ inform_data
++--	DIR\ inform_data <\n>
 | +-- Phenotyped:	add a folder for each  Antibody (ABx) in the panel
 | | +-- ABX1 (e.g.	CD8)
 | | +-- ABX2 (e.g.CD163)
