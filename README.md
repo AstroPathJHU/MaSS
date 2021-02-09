@@ -219,13 +219,13 @@ The code creates output into a QA_QC subfolder under the ```*DIR\MXX\inform_data
   - All_Markers (subfolder): three types of image output, designated by the following extensions after the image coordinate brackets
     - ‘_cleaned_phenotype_image’
       - This image shows the full color image with all component layers on and phenotype classification markers on all cells (see above for description) <br>
-       ![Figure 5 Image](www/Fig5.png)
+       ![Figure 5 Image](www/cleaned_phenotype_image.png)
     -	‘_cleaned_phenotype_w_seg’
         - This is image is the same as the image above except that is has the 'combined' segmentation map overlaid on top <br>
-![Figure 6 Image](www/Fig6.png)
+![Figure 6 Image](www/cleaned_phenotype_w_seg.png)
     -	‘_composite_image’
         - This image displays the full color image, with all component layers, but without the dots indicating phenotype <br>
-        ![Figure 7 Image](www/Fig7.png)
+        ![Figure 7 Image](www/composite_image.png)
   - There will also be a sub folder for each lineage and expression marker designated, these folders allow a performance assessment of  individual markers
     - This includes a folder for any combination lineage markers designated in the ‘CoexpressionStatus’ from the merge configuration table
     - The folders will be labeled by antibody; e.g. separate folders labeled 'CD8', 'PD1'
@@ -238,19 +238,21 @@ The code creates output into a QA_QC subfolder under the ```*DIR\MXX\inform_data
         - For coexpressing lineages, since there is more than one expression pattern, images below labeled as grey scale will instead be in the colors defined by the merge configuration file
       -	‘_cell_stamp_mosaics_pos_neg’
          - These include the cell segmentation, DAPI, and a grey scale of the component expression overlaid <br>
-          ![Figure 8 Image](www/Fig8.png)
+          ![Figure 8 Image](www/cell_stamp.png)
       -	‘_cell_stamp_mosaics_pos_neg_no_dapi’
         -	These include the cell segmentation and a grey scale of the component expression overlaid, with DAPI removed to increase visibility <br>
-         ![Figure 9 Image](www/Fig9.png)
+         ![Figure 9 Image](www/cell_stamp_no_dapi.png)
       -	‘_cell_stamp_mosaics_pos_neg_no_seg’
         - These include the DAPI and a grey scale of the component expression overlaid, with the segmentation removed to increase visibility
+        ![Figure 10 Image](www/cell_stamp_no_seg.png)
       -	‘_cell_stamp_mosaics_pos_neg_no_dapi_no_seg’
         - These include a grey scale of the component expression overlaid, with the segmentation and DAPI removed to increase visibility
+        ![Figure 11 Image](www/cell_stamp_no_dapi_no_seg.png)
       -	‘_full_color_expression_image’
         -	Full image with all component layers and segmentation overlaid
         -	The color-marker pairs are indicated in the bottom left hand corner of the image
         -	The white crosses indicate positive cells for the marker of interest <br>
-         ![Figure 10 Image](www/Fig10.png)
+         ![Figure 12 Image](www/full_color_expression.png)
       -	‘_full_color_expression_image_no_seg’
         -	Full image with all component layerr, *without* the segmentation overlaid
         -	The color-marker pairs are indicated in the bottom left hand corner of the image
@@ -258,11 +260,11 @@ The code creates output into a QA_QC subfolder under the ```*DIR\MXX\inform_data
       -	‘_single_color_expression_image’
         -	Full image  of the component layer of the marker of interest in *grey scale*, DAPI, and segmentation overlaid
         -	The white crosses indicate positive cells for the marker of interest <br>
-        ![Figure 11 Image](www/Fig11.png)
+        ![Figure 14 Image](www/single_color_expression.png)
       -	‘_single_color_expression_image_no_seg’
         -	Full image  of the component layer of the marker of interest in *grey scale* and DAPI *without* the segmentation overlaid
         -	The white crosses indicate positive cells for the marker of interest <br>
-        ![Figure 11 Image](www/Fig11.png)
+        ![Figure 15 Image](www/single_color_expression_no_seg.png)
 - Lin&Expr_Coex (subfolder):
   - Here there will be a folder for each defined lineage marker. 
   - Inside each folder will be a set of 8 images as desribed in the 'individual markers section'. These images are designed to assess the coexpression of each lineage with each defined expression marker. 
