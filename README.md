@@ -237,11 +237,11 @@ The code creates output into a QA_QC subfolder under the ```*DIR\MXX\inform_data
           - If less than 25 cells of this type exist we show all positive cells. If none exist, images of this type are not exported
         - For coexpressing lineages, since there is more than one expression pattern, images below labeled as grey scale will instead be in the colors defined by the merge configuration file
       -	‘_cell_stamp_mosaics_pos_neg’
-         - These include the cell segmentation, DAPI, and a grey scale of the component expression overlaid
-          ![Figure 8 Image](www/Fig8.png)
+         - These include the cell segmentation, DAPI, and a grey scale of the component expression overlaid <br>
+           ![Figure 8 Image](www/Fig8.png)
       -	‘_cell_stamp_mosaics_pos_neg_no_dapi’
-        -	These include the cell segmentation and a grey scale of the component expression overlaid, with DAPI removed to increase visibility
-        ![Figure 9 Image](www/Fig9.png)
+        -	These include the cell segmentation and a grey scale of the component expression overlaid, with DAPI removed to increase visibility <br>
+          ![Figure 9 Image](www/Fig9.png)
       -	‘_cell_stamp_mosaics_pos_neg_no_seg’
         - These include the DAPI and a grey scale of the component expression overlaid, with the segmentation removed to increase visibility
       -	‘_cell_stamp_mosaics_pos_neg_no_dapi_no_seg’
@@ -249,19 +249,19 @@ The code creates output into a QA_QC subfolder under the ```*DIR\MXX\inform_data
       -	‘_full_color_expression_image’
         -	Full image with all component layers and segmentation overlaid
         -	The color-marker pairs are indicated in the bottom left hand corner of the image
-        -	The white crosses indicate positive cells for the marker of interest 
-        ![Figure 10 Image](www/Fig10.png)
+        -	The white crosses indicate positive cells for the marker of interest <br>
+          ![Figure 10 Image](www/Fig10.png)
       -	‘_full_color_expression_image_no_seg’
         -	Full image with all component layerr, *without* the segmentation overlaid
         -	The color-marker pairs are indicated in the bottom left hand corner of the image
         -	The white crosses indicate positive cells for the marker of interest 
       -	‘_single_color_expression_image’
         -	Full image  of the component layer of the marker of interest in *grey scale*, DAPI, and segmentation overlaid
-        -	The white crosses indicate positive cells for the marker of interest 
+        -	The white crosses indicate positive cells for the marker of interest <br>
         ![Figure 11 Image](www/Fig11.png)
       -	‘_single_color_expression_image_no_seg’
         -	Full image  of the component layer of the marker of interest in *grey scale* and DAPI *without* the segmentation overlaid
-        -	The white crosses indicate positive cells for the marker of interest 
+        -	The white crosses indicate positive cells for the marker of interest <br>
         ![Figure 11 Image](www/Fig11.png)
 - Lin&Expr_Coex (subfolder):
   - Here there will be a folder for each defined lineage marker. 
