@@ -218,7 +218,7 @@ The code creates output into a QA_QC subfolder under the ```*DIR\MXX\inform_data
 - Phenotype (subfolder):
   - All_Markers (subfolder): three types of image output, designated by the following extensions after the image coordinate brackets
     - ‘_cleaned_phenotype_image’
-      - This image shows the full image with all component layers 
+      - This image shows the full image with all component layers <br>
 ![Figure 5 Image](www/Fig5.png)
     -	‘_cleaned_phenotype_w_seg’
       - This is image is the same as the image in ‘b’ except that is has the segmentation overlaid on top 
