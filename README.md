@@ -17,7 +17,7 @@ Individual Contributions: **Benjamin Green**: Conceptualization, Methodology, So
 5. [Image and Table File Structure](#section-5-image-and-table-file-structure "Title")
 6. [Installation and how to run](#section-6-installation-and-how-to-run "Title")
 7. [Output](#section-7output "Title")
-8. [Image QA QC utility](#section-8image-qa-qc-utility "Title")
+8. [Create Image QA QC utility](#section-8create-image-qa-qc-utility "Title")
 
 ## ***Section 2: Summary***
 Merge a Single Sample (MaSS) is an executable utility, written and compiled in MATLAB that facilitates the analysis of multiplex immunofluorescence imaging data. Specifically, it merges a set of binary phenotype classifications for individual markers created by the inForm® Cell Analysis (Akoya Biosciences®) phenotype module into a single coordinate system, enabling the so-called 'multipass' method for mIF cell classification. With this method each cell type is both segmented and classified separately, thereby reducing the segmentation error caused by cell size variation and decreasing the complexity of classifying high plex panels where many different coexpressions can exist. By  In order to minimize over-segmentation and reconcile different cell segmentation algorithms the code satisfies the condition that only one cell is identified within 6 pixels of another cell call, a distance that is measured between cell centers. To reconcile conflicting phenotypic classifications of the same cell, a hierarchical decision tree is used to determine which phenotypes will persist. The decision tree is embedded in the user defined [merge configuration file](#section-4-merge-configuration-file-structure "Title") along with information about the panel and pre-processing analysis. With this file and *a priori* information about the panel, the user can alter the behavior of marker interactions; specifying things like acceptable coexpressions, mutual segmentation algorithms, and even allowing multiple segmentation algorithms for a single marker. The utility was designed to run across a set of images in the [predefined folder structure](#section-5-image-and-table-file-structure "Title"). This document further details the steps involved in phenotype clean up and instructions on implementing the code.
@@ -189,7 +189,7 @@ This table contains 62 columns:
       
 The code also produces a folder named ```*\Results\tmp_inform_data```, which contains .mat files for the images that meet the Image QA criteria, detailed below. These .mat files contain a copy of the ```*_cleaned_phenotype_table.csv``` in an easily accessible MATLAB format.
 
-## ***Section 8:	Image QA QC utility***
+## ***Section 8:	Create Image QA QC utility***
 v.0.01.001
 ### Section 8.1 Description/ running instructions
 In order to assess the performance of the cell phenotype algorithms on a large quantity of images, an algorithm was developed to selectively sample images and create modified visual displays of those images. This algorithm is a secondary application which must be downloaded and installed separately, it is called CreateImageQAQC. This code must be run after the MaSS protocol as it relies on the tmp_inform_data directory the MaSS tool creates. The code is relatively simple to run from a cmd prompt using the following:
