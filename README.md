@@ -5,7 +5,7 @@
  <div align="center"> Departments of <sup>4</sup>Astronomy and Physics at Johns Hopkins University and IDIES, Baltimore, MD, USA</div> 
  <br>
  
-Individual Contributions: **Benjamin Green**: Conceptualization, Methodology, Software, Writing – Original Draft, Visualization **Sneha Berry**: Conceptualization; Validation, Visualization, Writing – Review & Editing **Liz Engle**: Conceptualization, Resources **Nicolas Giraldo-Castillo**: Conceptualization **Peter Nguyen** Conceptualization, Methodology **Tricia Cottrell** Conceptualization, Validation, Writing – Review & Editing **Janis Taube** Conceptualization, Supervision **Alex Szalay** Conceptualization, Methodology, Validation, Software, Supervision
+Individual Contributions: **Benjamin Green**: Conceptualization, Methodology, Software, Writing – Original Draft, Visualization **Sneha Berry**: Conceptualization; Validation, Visualization, Writing – Review & Editing **Liz Engle**: Conceptualization, Resources **Nicolas Giraldo-Castillo**: Conceptualization **Peter Nguyen**: Conceptualization, Methodology **Tricia Cottrell**: Conceptualization, Validation, Writing – Review & Editing **Janis Taube**: Conceptualization, Supervision **Alex Szalay**: Conceptualization, Methodology, Validation, Software, Supervision
 
 #### <div align="center">Correspondence to: bgreen42@jh.edu</div>
 
