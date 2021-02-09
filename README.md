@@ -221,10 +221,10 @@ The code creates output into a QA_QC subfolder under the ```*DIR\MXX\inform_data
       - This image shows the full image with all component layers <br>
 ![Figure 5 Image](www/Fig5.png)
     -	‘_cleaned_phenotype_w_seg’
-      - This is image is the same as the image in ‘b’ except that is has the segmentation overlaid on top 
+       - This is image is the same as the image in ‘b’ except that is has the segmentation overlaid on top <br>
         ![Figure 6 Image](www/Fig6.png)
     -	‘_composite_image’
-      - This image displays the full image with all component layers but without the dots indicating phenotype
+        - This image displays the full image with all component layers but without the dots indicating phenotype <br>
         ![Figure 7 Image](www/Fig7.png)
   - There will also be a sub folder for each lineage and expression marker designated
     - This includes a folder for any combination lineage markers designated in the ‘CoexpressionStatus’ from the merge configuration table
