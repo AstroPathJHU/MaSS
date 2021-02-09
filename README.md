@@ -221,7 +221,7 @@ The code creates output into a QA_QC subfolder under the ```*DIR\MXX\inform_data
       - This image shows the full image with all component layers 
 ![Figure 5 Image](www/Fig5.png)
     -	‘_cleaned_phenotype_w_seg’
-       - This is image is the same as the image in ‘b’ except that is has the segmentation overlaid on top 
+      - This is image is the same as the image in ‘b’ except that is has the segmentation overlaid on top 
         ![Figure 6 Image](www/Fig6.png)
     -	‘_composite_image’
       - This image displays the full image with all component layers but without the dots indicating phenotype
