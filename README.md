@@ -243,10 +243,10 @@ The code creates output into a QA_QC subfolder under the ```*DIR\MXX\inform_data
         -	These include the cell segmentation and a grey scale of the component expression overlaid, with DAPI removed to increase visibility <br>
          ![Figure 9 Image](www/cell_stamp_no_dapi.png)
       -	‘_cell_stamp_mosaics_pos_neg_no_seg’
-        - These include the DAPI and a grey scale of the component expression overlaid, with the segmentation removed to increase visibility
+        - These include the DAPI and a grey scale of the component expression overlaid, with the segmentation removed to increase visibility<br>
         ![Figure 10 Image](www/cell_stamp_no_seg.png)
       -	‘_cell_stamp_mosaics_pos_neg_no_dapi_no_seg’
-        - These include a grey scale of the component expression overlaid, with the segmentation and DAPI removed to increase visibility
+        - These include a grey scale of the component expression overlaid, with the segmentation and DAPI removed to increase visibility<br>
         ![Figure 11 Image](www/cell_stamp_no_dapi_no_seg.png)
       -	‘_full_color_expression_image’
         -	Full image with all component layers and segmentation overlaid
