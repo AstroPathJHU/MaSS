@@ -75,7 +75,7 @@ if nargin < 4
     logstring = '';
 end
 %
-imall = 0;
+imall = 1;
 %
 err_val = mywritetolog(wd, sname, logstring, '', 1, version);
 e_code = err_handl(wd, sname, logstring, [], err_val);

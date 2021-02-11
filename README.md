@@ -110,7 +110,7 @@ The code relies on a data organization format detailed below:<br>
 | | +-- ABX3 (e.g.FoxP3)<br>
 | | +-- ABX4 (e.g.	Tumor)<br>
 | | +-- ABX5 (e.g.PD1)<br>
-| | +--ABX6 (e.g.PDL1)<br>
+| | +-- ABX6 (e.g.PDL1)<br>
 
 
 - The antibody names here should correspond to those names used in the merge configuration table. 
@@ -130,9 +130,14 @@ Finally, add all the Component data, *_component_data.tiff*, images from the inF
 The executable is available on github either as a matlab function or as a deployable application. The inputs to both are the same, here we only describe the instructions for uses as a deployable application.
 1.	install the application on the desired computer by opening the distributed file ‘MaSS Installer.exe’ and following the onscreen prompts. MATLAB does not need to be installed for the software to work.
     - The installer will download and install a version of MATLAB runtime if it is not already installed on the computer. Note that the code will run off of whatever drive the runtime is installed on. Furthermore, if the runtime is installed on the wrong drive, using windows, uninstall the application and MATLAB runtime instance, then reinstall 
-2.	Once installed, pass the following call to the cmd prompt: 
-    - ```CALL "C:\Program Files\Astropath\MaSS\application \MaSS.exe" "*DIR \inform_data" "MXX" “*DIR \MergeConfig_XX.xlsx”```
-    - Replace ```*DIR``` with the corresponding paths, ```MXX``` with the sample name, and ```MergeConfig_XX``` with the name of the merge configuration file. Unless changed during installation the path to the executable will be ```‘C:\Program Files\Astropath\MaSS\application’```. If the installation path is different, this should also be changed. Once started, the code will generate a resulting .csv for every image on the ```inform_data``` folder
+2.	Once installed, run from the command line as: 
+    -  ```CALL *\MaSS.exe wd sname mergeconfig [logstring] ```
+        - ```wd(string)```: working directory up to the *inform_data* folder
+        - ```sname(string)```: specimen name
+        - ```mergeconfig(string)```: fully qualified path to the merge configuration file
+        - ```[logstring](string)```: optional logstring arguement; used in the clinical specimen astropath pipeline, adds string to the start of each log line. Be sure to end the string with a ';' to ensure proper separation in the log messages
+    - E.g. ```CALL "C:\Program Files\Astropath\MaSS\application \MaSS.exe" "*DIR \inform_data" "MXX" “*DIR \MergeConfig_XX.xlsx”```
+      - Replace ```*DIR``` with the corresponding paths, ```MXX``` with the sample name, and ```MergeConfig_XX``` with the name of the merge configuration file. Unless changed during installation the path to the executable will be ```‘C:\Program Files\Astropath\MaSS\application’```. If the installation path is different, this should also be changed. Once started, the code will generate a resulting .csv for every image on the ```inform_data``` folder
 3. Tips for defining file structure, generating files, and creating projects
    - Be sure to name the opals on the prepare tab in inForm Cell Analysis®.  	
    - When naming the opals, use the same names as indicated in the file structure and the ‘Target’ column of the BatchID table. 
@@ -193,12 +198,14 @@ The code also produces a folder named ```*\Results\tmp_inform_data```, which con
 v.0.01.001
 ### Section 8.1 Description/ running instructions
 In order to assess the performance of the cell phenotype algorithms on a large quantity of images, an algorithm was developed to selectively sample images and create modified visual displays of those images. This algorithm is a secondary application which must be downloaded and installed separately, it is called CreateImageQAQC. This code must be run after the MaSS protocol as it relies on the tmp_inform_data directory the MaSS tool creates. The code is relatively simple to run from a cmd prompt using the following:
-
-- CALL "C:\Program Files\Astropath\ CreateImageQAQC \application \ CreateImageQAQC.exe" "*DIR \inform_data\Phenotyped" "MXX" “*DIR \BatchID_XX.xlsx”
-
-Replace ```*DIR``` with the corresponding paths, ```MXX``` with the sample name, and ```MergeConfig_XX``` with the name of the merge configuration file. Unless changed during installation the path to the executable will be ```‘C:\Program Files\Astropath\MaSS\application’```. If the installation path is different, this should also be changed. 
-
-The .mat file is also available in the github directory for use in matlab. 
+- ```CALL *\CreateImageQAQC.exe wd sname mergeconfig [logstring] [allimages] ```
+  - ```wd(string)```: working directory up to the *inform_data* folder
+  - ```sname(string)```: specimen name
+  - ```mergeconfig(string)```: fully qualified path to the merge configuration file
+  - ```[logstring](string)```: optional logstring arguement; used in the clinical specimen astropath pipeline, adds string to the start of each log line. Be sure to end the string with a ';' to ensure proper separation in the log messages
+  - ```[allimages](int)```: optional arguement to export QC on all images (1) or just the top 20 'hotspots' (0/ default). For this option, also pass a logsting agruement to the function as the variables are location specific in the function call
+- E.g.: CALL "C:\Program Files\Astropath\ CreateImageQAQC \application \ CreateImageQAQC.exe" "*DIR \inform_data\Phenotyped" "MXX" “*DIR \BatchID_XX.xlsx”
+  - Replace ```*DIR``` with the corresponding paths, ```MXX``` with the sample name, and ```MergeConfig_XX``` with the name of the merge configuration file. Unless changed during installation the path to the executable will be ```‘C:\Program Files\Astropath\MaSS\application’```. If the installation path is different, this should also be changed. 
 
 ### Section 8.2 Workflow Description
 The code first selects images for quality control based on user specifications. Only, images containing at least 60 tumor cells and images with at least 75 percent tissue coverage are considered for each sample. If a tumor cell designation is not included in the BatchID table, the tumor cell search criteria is removed. If less than 20 fields in the sample meet the search criteria, the minimum tissue coverage requirement is reduced by 6.25 percent. This is repeated until 20 fields meet the search criteria or the field tissue coverage search criteria decreases below 50 percent. If 20 fields or less than 20 fields are selected then performance testing is carried out on all fields. If more than 20 fields are selected, then the 20 highest designated ‘Immune’ cell density fields are selected for performance testing.
