@@ -198,12 +198,12 @@ The code also produces a folder named ```*\Results\tmp_inform_data```, which con
 v.0.01.001
 ### Section 8.1 Description/ running instructions
 In order to assess the performance of the cell phenotype algorithms on a large quantity of images, an algorithm was developed to selectively sample images and create modified visual displays of those images. This algorithm is a secondary application which must be downloaded and installed separately, it is called CreateImageQAQC. This code must be run after the MaSS protocol as it relies on the tmp_inform_data directory the MaSS tool creates. The code is relatively simple to run from a cmd prompt using the following:
-    -  ```CALL *\CreateImageQAQC.exe wd sname mergeconfig [logstring] [allimages] ```
-        - ```wd(string)```: working directory up to the *inform_data* folder
-        - ```sname(string)```: specimen name
-        - ```mergeconfig(string)```: fully qualified path to the merge configuration file
-        - ```[logstring](string)```: optional logstring arguement; used in the clinical specimen astropath pipeline, adds string to the start of each log line. Be sure to end the string with a ';' to ensure proper separation in the log messages
-        - ```[allimages](int)```: optional arguement to export QC on all images (1) or just the top 20 'hotspots' (0/ default). For this option, also pass a logsting agruement to the function as the variables are location specific in the function call
+- ```CALL *\CreateImageQAQC.exe wd sname mergeconfig [logstring] [allimages] ```
+  - ```wd(string)```: working directory up to the *inform_data* folder
+  - ```sname(string)```: specimen name
+  - ```mergeconfig(string)```: fully qualified path to the merge configuration file
+  - ```[logstring](string)```: optional logstring arguement; used in the clinical specimen astropath pipeline, adds string to the start of each log line. Be sure to end the string with a ';' to ensure proper separation in the log messages
+  - ```[allimages](int)```: optional arguement to export QC on all images (1) or just the top 20 'hotspots' (0/ default). For this option, also pass a logsting agruement to the function as the variables are location specific in the function call
 - E.g.: CALL "C:\Program Files\Astropath\ CreateImageQAQC \application \ CreateImageQAQC.exe" "*DIR \inform_data\Phenotyped" "MXX" “*DIR \BatchID_XX.xlsx”
   - Replace ```*DIR``` with the corresponding paths, ```MXX``` with the sample name, and ```MergeConfig_XX``` with the name of the merge configuration file. Unless changed during installation the path to the executable will be ```‘C:\Program Files\Astropath\MaSS\application’```. If the installation path is different, this should also be changed. 
 
