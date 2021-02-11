@@ -110,7 +110,7 @@ The code relies on a data organization format detailed below:<br>
 | | +-- ABX3 (e.g.FoxP3)<br>
 | | +-- ABX4 (e.g.	Tumor)<br>
 | | +-- ABX5 (e.g.PD1)<br>
-| | +--ABX6 (e.g.PDL1)<br>
+| | +-- ABX6 (e.g.PDL1)<br>
 
 
 - The antibody names here should correspond to those names used in the merge configuration table. 
