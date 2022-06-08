@@ -35,7 +35,12 @@ for z = 1:length(Markers.add)
     mkdir(m{2}, Markers.add{z})
 end
 %
-layers = length(Markers.Opals) + 2;
+if isfield(Markers, 'Membrane')
+    layers = length(Markers.Opals) + 3;
+else
+    layers = length(Markers.Opals) + 2;
+end
+
 %
 % get charts; determined based off of Blank, CD8, and Tumor percentages if
 % there are more than 20 HPFs

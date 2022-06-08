@@ -18,7 +18,12 @@ imp = reshape(image,[imageid.size,3]);
 % write out composite image with legend make each AB name the desired
 % color in the legend
 %
-marksa = ['Other',Markers.all];
+if isfield(Markers, 'Membrane')
+    marksa = ['Other',Markers.all,'PanMembrane'];
+else 
+    marksa = ['Other',Markers.all];
+end
+%
 colsa = 255*mycol.all(1:end-1,:);
 %
 % to make the text different colors each AB name must be written in a

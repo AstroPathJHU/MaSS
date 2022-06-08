@@ -34,7 +34,11 @@ expr.compartment = Markers.Compartment(loc);
 % get the cell x and y positions from each segmentation map
 %
 seg_types = [Markers.seg,Markers.altseg];
-layers = length(Markers.Opals) + 2;
+if isfield(Markers, 'Membrane')
+    layers = length(Markers.Opals) + 3;
+else 
+    layers = length(Markers.Opals) + 2;
+end
 filnm = [imageid.id,'cell_seg_data'];
 %
 xy_seg = cellfun(@(x) get_pheno_xy(filnm,x,imageid.wd,layers),seg_types,'Uni',0);

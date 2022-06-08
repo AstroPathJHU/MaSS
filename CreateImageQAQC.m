@@ -147,8 +147,6 @@ end
 %
 err_str = ['creating output for ', num2str(length(charts)),' fields'];
 mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');
-err_val = imageloop(wd, uc, logstring, Markers, charts, doseg);
-
 %
 try 
     %

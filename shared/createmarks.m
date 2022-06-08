@@ -31,6 +31,13 @@ if err_val == 3
     return
 end
 %
+%
+ii = contains(B.Target,'membrane', 'IgnoreCase', true);
+%
+if sum(ii) == 1
+    Markers.Membrane = B.Target(ii);
+end
+%
 [B, err_val] = checkTableVars(B);
 if ~ismember(err_val, [0,2])
     return
@@ -284,7 +291,15 @@ end
 %
 % remove the DAPI row
 %
-dr = strcmp(B.Opal, 'DAPI');
+dr = strcmpi(B.Opal, 'DAPI');
+if sum(dr) ~= 1
+    err_val = 5;
+end
+B(dr,:) = [];
+%
+% remove the DAPI row
+%
+dr = contains(B.Target,'membrane', 'IgnoreCase', true);
 if sum(dr) ~= 1
     err_val = 5;
 end
@@ -353,7 +368,7 @@ elseif height(B) <= 10 && height(B) > 7
         0.91 0.41 0.17;
         0 1 1;
         1 0 1;
-        1 1 1;];
+        .7 .7 .7;];
     mycol.all = [0 0 1;
         mycolab(1:height(B)-1, :);
         0 0 0];
@@ -371,7 +386,7 @@ end
 color_names = {'red','green','blue','cyan', ...
     'magenta','yellow','white','black','orange','coral'};
 color_names2 = {'r','g','b','c','m','y','w','k','o','l'};
-colors = [eye(3); 1-eye(3); 1 1 1; 0 0 0;0.91 0.41 0.17; 1 .7529 .7961; ];
+colors = [eye(3); 1-eye(3); .7 .7 .7; 0 0 0;0.91 0.41 0.17; 1 .7529 .7961; ];
 %
 if isa(B.Colors, 'cell')
     [ii,loc] = ismember(B.Colors, color_names);
