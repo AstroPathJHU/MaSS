@@ -32,7 +32,7 @@ if err_val == 3
 end
 %
 %
-ii = contains(B.Target,'membrane', 'IgnoreCase', true);
+ii = contains(B.ImageQA,'membrane', 'IgnoreCase', true);
 %
 if sum(ii) == 1
     Markers.Membrane = B.Target(ii);
@@ -299,10 +299,7 @@ B(dr,:) = [];
 %
 % remove the DAPI row
 %
-dr = contains(B.Target,'membrane', 'IgnoreCase', true);
-if sum(dr) ~= 1
-    err_val = 5;
-end
+dr = contains(B.ImageQA,'membrane', 'IgnoreCase', true);
 B(dr,:) = [];
 %
 % check the last 3 columns are all set as numeric
