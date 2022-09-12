@@ -111,7 +111,7 @@ if isempty(gcp('nocreate'))
         if numcores > 6
             numcores = 6; %#ok<NASGU>
         end
-        evalc('parpool("local",numcores)');
+        evalc('pool = parpool("local",numcores)');
     catch
         err_val = 10;
         e_code = err_handl(wd, uc, logstring, Markers, err_val, 'QA_QC');
@@ -162,6 +162,10 @@ e_code = err_handl(wd, uc, logstring, Markers, err_val, 'QA_QC');
 if e_code == 1
     return
 end
+%
+% close the parallel pool
+%
+delete(pool)
 %
 err_str = 'CreateQAQC finished';
 mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');
