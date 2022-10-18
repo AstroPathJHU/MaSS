@@ -37,38 +37,21 @@ end
 % loop through the mergetbls function for each sample with error catching
 %
 parfor i1 = 1:length(filenms)
-    %
-    % current filename
-    %
-    fname = filenms(i1);
-    nm = extractBefore(fname.name,"_cell_seg");
-    if isempty(nm)
-        nm = extractBefore(fname.name,"_CELL_SEG");
+    errors = cell(length(filenms), 1);
+    [errors] = mergeloop(...
+    filenms, i1, errors, Markers, wd, 0, sname, logstring);
+end
+%
+% Check if matlab files were created for QAQC step
+% If not run without Tumor check
+%
+figtabledir = [wd, '\Phenotyped\Results\tmp_ForFiguresTables'];
+if length(dir(figtabledir)) < 3
+    parfor i1 = 1:length(filenms)
+        errors = cell(length(filenms), 1);
+        [errors] = mergeloop(...
+        filenms, i1, errors, Markers, wd, 1, sname, logstring);
     end
-    log_name = nm;
-    %
-    % try each image through the merge tables function
-    %
-    try
-        [fData, e_code] = mergetbls(fname, Markers, wd, imall);
-        errors{i1} = 0;
-        %
-        if isempty(fData) && e_code == 0
-            e_code = 14;
-        end
-        %
-        if e_code ~= 0
-            %
-            err_handl(wd, sname, logstring, log_name, e_code, 'Tables');
-            errors{i1} = 1;
-            %
-        end
-        %
-    catch
-       err_handl(wd, sname, logstring, log_name, 14, 'Tables');
-       errors{i1} = 1;  
-    end
-    %
 end
 %
 % close parallel loop
