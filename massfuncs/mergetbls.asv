@@ -42,9 +42,8 @@ q = getcoex(d, Markers);
 % segmentation polygons
 %
 a = getseg(q, Markers);
-if isa(a, 'double')
-    e_code = 18;
-    return
+if 
+    e_code = 17;
 end
 %
 % determine expression markers by cells that are in X radius

@@ -61,7 +61,7 @@ if err_val ~= 0
                 Markers.seg{1}];
             e_code = 1;
         case 12
-            err_str = ['ERROR: check binary segmentation maps in ',mark];
+            err_str = ['ERROR: check that binary segmentation maps in ',mark];
             e_code = 1;
         case 13
             err_str = 'ERROR: check inForm output files';

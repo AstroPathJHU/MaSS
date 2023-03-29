@@ -102,7 +102,12 @@ p.size.T = 2; p.size.B = s{1}(1)-1; p.size.L = 2; p.size.R = s{1}(2)-1;
 %
 % Remove non 1ry cells
 %
-im4 = im4(1,cellids);
+try
+    im4 = im4(1,cellids);
+catch EM
+    p = 18;
+    return
+end
 %
 % get expected size of cell vector
 %
