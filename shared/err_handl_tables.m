@@ -75,10 +75,10 @@ if err_val ~= 0
                 delete(ftd)
             end
             %
-            e_code = 0;
+            e_code = 1;
         case 15
             err_str = 'ERROR: check inForm output files';
-            e_code = 0;
+            e_code = 1;
         case 16
             err_str = ['ERROR: ', Markers,' failed. ',...
                 'Units in dual segmentation antibody not the same'];
@@ -89,7 +89,7 @@ if err_val ~= 0
                 delete(ftd)
             end
             %
-            e_code = 0;
+            e_code = 1;
         case 17
             err_str = ['WARNING: ', Markers,': ',...
                 'Units for at least one inForm output in microns instead of pixels.'];
