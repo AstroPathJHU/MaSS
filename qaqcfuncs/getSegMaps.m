@@ -63,7 +63,11 @@ for i1 = 1:length(xy_expr)
     %
     % find segmentations that have the same number of cells
     %
-    idx = find(num_expr(i1) == num_seg); 
+    idx = find(num_expr(i1) == num_seg);
+    if isempty(idx)
+        err_msg = 'expression error';
+        error(err_msg);
+    end
     %
     % if more than one segmentation type has the same number of cells
     % compare positions to determine current segmenation map

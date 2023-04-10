@@ -63,13 +63,13 @@ if err_val ~= 0
                         'does not exist or is corrupt'];
             e_code = 1;
         case 13
-            err_str = 'ERROR: check binary segmentation maps contain all 4 tissue+cell layers';
+            err_str = ['ERROR: check binary segmentation maps contain all 4 tissue+cell layers'];
             e_code = 1;
         case 14
             err_str = ['WARNING: Could not export all QA QC images, check inForm tables'];
             e_code = 0;
         case 15
-            err_str = 'WARNING: check inForm output files';
+            err_str = ['WARNING: check inForm output files'];
             e_code = 0;
     end
     %

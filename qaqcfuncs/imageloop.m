@@ -49,10 +49,17 @@ parfor i2 = 1:length(charts)
         err_str = ['CreateQAQC ', log_name, ' finished'];
         mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');
         e{i2} = 0;
-    catch
-        e{i2} = 1;
-        err_str = ['ERROR: CreateQAQC ', log_name, ' failed'];
-        mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');
+    catch E
+        switch E.message
+            case 'expression error'
+                e{i2} = 1;
+                err_str = ['ERROR: expression segmentation does not match primary segmentation'];
+                mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');
+            otherwise
+                e{i2} = 1;
+                err_str = ['ERROR: CreateQAQC ', log_name, ' failed'];
+                mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');
+        end
     end
     %
 end
