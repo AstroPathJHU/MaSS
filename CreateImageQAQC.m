@@ -87,7 +87,7 @@ mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');
 % get Markers structure
 %
 try
-    %    
+    %
     [Markers, err_val] = createmarks(MergeConfig);
     %
 catch
