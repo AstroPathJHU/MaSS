@@ -100,6 +100,9 @@ if err_val ~= 0
                 'Make sure all cell seg data files are concurrent with '...
                 'binary seg maps of their segmentation heirarchy.'];
             e_code = 1;
+        case 19
+            err_str = ['ERROR: Cell segmentation file missing'];
+            e_code = 1;
     end
     %
     %disp([sname, ';',err_str])

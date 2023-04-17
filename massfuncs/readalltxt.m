@@ -53,7 +53,13 @@ if idx
         for i2 = 2:Markers.nsegs(cidx)
             idx_count = idx_count + 1;
             x = [Markers.all{cidx},'_',num2str(i2)];
-            [v3{idx_count},units3] = readtxt(filename,x, wd, layers); %#ok<AGROW>
+            try 
+                [v3{idx_count},units3] = readtxt(filename,x, wd, layers); %#ok<AGROW>
+            catch
+                e_code = 19;
+                return
+            end
+            
             if ~strcmp(units3, units(cidx))
                 e_code = 16;
                 return
