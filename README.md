@@ -89,14 +89,17 @@ Merge Configuration file is a csv spreadsheet which indicates how the markers wi
 9.	```NumberofSegmentations[int]```: this value indicates how many segmentations were used for each antibody
     - as of the current update this setting is only supported on markers designated as ‘expression’
     - lineage cells that are from separate segmentations but are allowed to coexpress will create unexpected results 
-10.	```ImageQA[string]```: This column allows a user to set 2 different conditions of the batch
+10.	```ImageQA[string]```: This column allows a user to set 3 different conditions of the batch
     -	'Immune': The user can set one cell type as the ‘Immune’ cell 
-      - Fields with the highest density of this cell type will be selected by the CreateImageQAQC algorithm to be assessed
-      - there needs to be at least one and only one of these designations for the MaSS code to work
+        - Fields with the highest density of this cell type will be selected by the CreateImageQAQC algorithm to be assessed
+        - there needs to be at least one and only one of these designations for the MaSS code to work
     -	'Tumor': The user can set one cell type as ‘Tumor’
-       - This is an optional field and will tell the code to narrow down the QA to fields to only include those with more than 60 of this cell type
-       - There can be only one cell of this type
+        - This is an optional field and will tell the code to narrow down the QA to fields to only include those with more than 60 of this cell type
+        - There can be only one cell of this type
     -	Only set one marker as ‘Immune’ and only one marker as ‘Tumor’
+    -	'Membrane': The user can set one cell type as ‘Membrane’
+        - This is an optional field and will tell the code that this marker does not need to be phenotyped
+        - A marker with this condition will not be a factor used in the merge
 11. ```Colors[string]```: specify the colors for the create image qa qc protocol. Colors can be specified by the color name or abbreviations below.
     - Options: 'red','green','blue','cyan', 'magenta','yellow','white','black','orange','coral'
     - Abbreviations: 'r','g','b','c','m','y','w','k','o','l'
