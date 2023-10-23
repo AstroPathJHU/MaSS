@@ -18,7 +18,7 @@
 %%%     | - - + tmp_ForFiguresTables (.mat files created by MaSS corresponding to the
 %%%         tables which meet the 600 cell \ 60 tumor cell criteria (if no tumor
 %%%         marker only former criteria must be met)
-%%% uc: sample name (only used in logging)
+%%% sname: sample name (only used in logging)
 %%% MergeConfig: full path to the merge configuration file
 %%% logstring: the intial portion of the logstring (project;cohort;)
 %%% allimages: optional arguement; 0 (default) or #; do the image subset
@@ -26,9 +26,9 @@
 %%%
 %% --------------------------------------------------------------
 %% Usage:
-%%% CreateImageQAQC(wd, uc, MergeConfig, logstring, [allimages])
+%%% CreateImageQAQC(wd, sname, MergeConfig, logstring, [allimages])
 %%% wd = '\\bki03\Clinical_Specimen_4\PZ1\inform_data'
-%%% uc = 'PZ1';
+%%% sname = 'PZ1';
 %%% MergeConfig = '\\bki03\Clinical_Specimen_4\Batch\MergeConfig_01.xlsx'
 %%% logstring = '1;2;'
 %%% allimages = 0;
@@ -58,7 +58,7 @@
 % SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 %% --------------------------------------------------------------
 %%
-function CreateImageQAQC(wd, uc, MergeConfig, logstring, allimages)
+function CreateImageQAQC(wd, sname, MergeConfig, logstring, allimages)
 %
 filepath = fileparts(mfilename('fullpath'));
 addpath(genpath(filepath))
@@ -70,19 +70,19 @@ end
 %
 doseg = 1; %option whether or not to generate images with segmentation maps
 %
-err_val = mywritetolog(wd, uc, logstring, '', 1, 'QA_QC', version);
-e_code = err_handl(wd, uc, logstring, [], err_val, 'QA_QC');
+err_val = mywritetolog(wd, sname, logstring, '', 1, 'QA_QC', version);
+e_code = err_handl(wd, sname, logstring, [], err_val, 'QA_QC');
 if e_code == 1
     return
 end
 %
-err_str = ['-wd: ', replace(wd, '\', '\\'), ' -sname: ', uc];
-mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');
+err_str = ['-wd: ', replace(wd, '\', '\\'), ' -sname: ', sname];
+mywritetolog(wd, sname, logstring, err_str, 2, 'QA_QC');
 %
 % get Markers structure
 %
 err_str = ['parsing MergeConfig file: ', replace(MergeConfig, '\', '\\')];
-mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');
+mywritetolog(wd, sname, logstring, err_str, 2, 'QA_QC');
 %
 % get Markers structure
 %
@@ -92,11 +92,11 @@ try
     %
 catch
     err_val = 8;
-    err_handl(wd, uc, logstring, [], err_val, 'QA_QC');
+    err_handl(wd, sname, logstring, [], err_val, 'QA_QC');
     return
 end
 %
-e_code = err_handl(wd, uc, logstring, Markers, err_val, 'QA_QC');
+e_code = err_handl(wd, sname, logstring, Markers, err_val, 'QA_QC');
 if e_code == 1
     return
 end
@@ -114,7 +114,7 @@ if isempty(gcp('nocreate'))
         evalc('pool = parpool("local",numcores)');
     catch
         err_val = 10;
-        e_code = err_handl(wd, uc, logstring, Markers, err_val, 'QA_QC');
+        e_code = err_handl(wd, sname, logstring, Markers, err_val, 'QA_QC');
         if e_code == 1
             return
         end
@@ -128,7 +128,7 @@ if nargin < 5
 end
 %
 err_str = 'determining hotspot images';
-mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');
+mywritetolog(wd, sname, logstring, err_str, 2, 'QA_QC');
 %
 try
     %
@@ -136,29 +136,29 @@ try
     %
 catch
     err_val = 11;
-    err_handl(wd, uc, logstring, [], err_val, 'QA_QC');
+    err_handl(wd, sname, logstring, [], err_val, 'QA_QC');
     return
 end
 %
-e_code = err_handl(wd, uc, logstring, Markers, err_val, 'QA_QC');
+e_code = err_handl(wd, sname, logstring, Markers, err_val, 'QA_QC');
 if e_code == 1
     return
 end
 %
 err_str = ['creating output for ', num2str(length(charts)),' fields'];
-mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');
+mywritetolog(wd, sname, logstring, err_str, 2, 'QA_QC');
 %
 try 
     %
-    err_val = imageloop(wd, uc, logstring, Markers, charts, doseg);
+    err_val = imageloop(wd, sname, logstring, Markers, charts, doseg);
     %
 catch
     err_val = 14;
-    err_handl(wd, uc, logstring, Markers, err_val, 'QA_QC');
+    err_handl(wd, sname, logstring, Markers, err_val, 'QA_QC');
     return
 end
 %
-e_code = err_handl(wd, uc, logstring, Markers, err_val, 'QA_QC');
+e_code = err_handl(wd, sname, logstring, Markers, err_val, 'QA_QC');
 if e_code == 1
     return
 end
@@ -168,7 +168,7 @@ end
 delete(pool)
 %
 err_str = 'CreateQAQC finished';
-mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');
+mywritetolog(wd, sname, logstring, err_str, 2, 'QA_QC');
 %
 end
 
