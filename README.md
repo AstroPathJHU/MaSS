@@ -36,19 +36,13 @@ The software can be run in the command line or as a matlab function. The inputs 
       - ```<[logstring]>(string)```: optional logstring argument; used in the clinical specimen astropath pipeline, adds string to the start of each log line. Be sure to end the string with a ';' to ensure proper separation in the log messages
    - E.g. ```MaSS('*DIR \inform_data','MXX','*DIR \MergeConfig_XX.xlsx');```
      - Replace ```*DIR``` with the corresponding paths, ```MXX``` with the sample name, and ```MergeConfig_XX``` with the name of the merge configuration file. Once started, the code will generate a resulting .csv for every image on the ```inform_data``` folder
-3. Once MaSS.m has finished, run  CreateImageQAQC.m in the same way
-   - ```CreateImageQAQC(<wd>,<sname>,<mergeconfig>,<[logstring]>)```
-   - E.g. ```CreateImageQAQC('*DIR \inform_data','MXX','*DIR \MergeConfig_XX.xlsx');```
 ### ***Command Line*** ###
 1. Open Command Prompt and cd into the location of the MATLAB file
    - ```cd C:\...\GitHub\MaSS```
 2. Within the MaSS directory, run the script with the following inputs:
    - ```matlab -nodesktop -nojvm -r "MaSS(<wd>,<sname>,<mergeconfig>,<[logstring]>)";```
    - E.g. ```matlab -nodesktop -nojvm -r "MaSS('*DIR \inform_data','MXX','*DIR \MergeConfig_01.xlsx')";```
-3. Once MaSS.m has finished, run  CreateImageQAQC.m in the same way
-   - ```matlab -nodesktop -nojvm -r "CreateImageQAQC(<wd>,<sname>,<mergeconfig>,<[logstring]>)";```
-   - E.g. ```matlab -nodesktop -nojvm -r "CreateImageQAQC('*DIR \inform_data','MXX','*DIR \MergeConfig_XX.xlsx')";```
-4. For more information on running MATLAB code through command line, see this [MathWorks link](https://www.mathworks.com/help/matlab/ref/matlabwindows.html).
+3. For more information on running MATLAB code through command line, see this [MathWorks link](https://www.mathworks.com/help/matlab/ref/matlabwindows.html).
 ### ***Additional Info*** ###
 Tips for defining file structure, generating files, and creating projects
 - Be sure to name the opals on the prepare tab in inForm®.  	
