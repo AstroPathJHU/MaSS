@@ -12,18 +12,54 @@ Individual Contributions: **Benjamin Green**: Conceptualization, Methodology, So
 ## ***Section 1: Contents***
 1. [Contents](#section-1-contents "Title")
 2. [Summary](#section-2-summary "Title")
-3. [Workflow Description](#section-3-workflow-description "Title")
-4. [Merge Configuration File Structure](#section-4-merge-configuration-file-structure "Title")
-5. [Image and Table File Structure](#section-5-image-and-table-file-structure "Title")
-6. [Installation and how to run](#section-6-installation-and-how-to-run "Title")
+3. [Installation and how to run](#section-3-installation-and-how-to-run "Title")
+4. [Workflow Description](#section-4-workflow-description "Title")
+5. [Merge Configuration File Structure](#section-5-merge-configuration-file-structure "Title")
+6. [Image and Table File Structure](#section-6-image-and-table-file-structure "Title")
 7. [Output](#section-7-output "Title")
 8. [Create Image QA QC utility](#section-8-create-image-qa-qc-utility "Title")
 
 ## ***Section 2: Summary***
-Merge a Single Sample (MaSS) is an executable utility, written and compiled in MATLAB that facilitates the analysis of multiplex immunofluorescence imaging data. Specifically, it merges a set of binary phenotype classifications for individual markers created by the inForm® (Akoya Biosciences®) phenotype module into a single coordinate system, enabling the so-called 'multipass' method for mIF cell classification. With this method each cell type is both segmented and classified separately, thereby reducing the segmentation error caused by cell size variation and decreasing the complexity of classifying high plex panels where many different coexpressions can exist. By  In order to minimize over-segmentation and reconcile different cell segmentation algorithms the code satisfies the condition that only one cell is identified within 6 pixels of any other cell call, a distance that is measured between cell centers. To reconcile conflicting phenotypic classifications of the same cell, a hierarchical decision tree is used to determine which phenotypes will persist. The decision tree is embedded in the user defined [merge configuration file](#section-4-merge-configuration-file-structure "Title") along with information about the panel and pre-processing analysis. With this file and *a priori* information about the panel, the user can alter the behavior of marker interactions; specifying things like acceptable coexpressions, mutual segmentation algorithms, and even allowing multiple segmentation algorithms for a single marker. The utility was designed to run across a set of images in the [predefined folder structure](#section-5-image-and-table-file-structure "Title"). This document further details the steps involved in phenotype clean up and instructions on implementing the code.
+Merge a Single Sample (MaSS) is a script, written and compiled in MATLAB that facilitates the analysis of multiplex immunofluorescence imaging data. Specifically, it merges a set of binary phenotype classifications for individual markers created by the inForm® (Akoya Biosciences®) phenotype module into a single coordinate system, enabling the so-called 'multipass' method for mIF cell classification. With this method each cell type is both segmented and classified separately, thereby reducing the segmentation error caused by cell size variation and decreasing the complexity of classifying high plex panels where many different coexpressions can exist. By  In order to minimize over-segmentation and reconcile different cell segmentation algorithms the code satisfies the condition that only one cell is identified within 6 pixels of any other cell call, a distance that is measured between cell centers. To reconcile conflicting phenotypic classifications of the same cell, a hierarchical decision tree is used to determine which phenotypes will persist. The decision tree is embedded in the user defined [merge configuration file](#section-4-merge-configuration-file-structure "Title") along with information about the panel and pre-processing analysis. With this file and *a priori* information about the panel, the user can alter the behavior of marker interactions; specifying things like acceptable coexpressions, mutual segmentation algorithms, and even allowing multiple segmentation algorithms for a single marker. The utility was designed to run across a set of images in the [predefined folder structure](#section-5-image-and-table-file-structure "Title"). This document further details the steps involved in phenotype clean up and instructions on implementing the code.
 
-## ***Section 3: Workflow Description***
-In order to run the executable, each marker in the multiplex panel must have separate classification table. This table should be in the ‘cell segmentation data’ export format as provided by the inForm®'s phenotype module. Each output for a specified marker, should have two defined phenotypes; one as the antibody name, i.e. ‘CD8’, and ‘Other’, case is not important. The data should be in the format defined [here](#section-5-image-and-table-file-structure "Title"). Tips on how to configure an InForm® project for compatibility with the MaSS program are defined at the end of [Section 4](#section-4-merge-configuration-file-structure "Title") and, in more detail, the accompanying protocol document [inForm Multipass Phenotype]. After the data has been exported and set in the proper format the merge configuration file for the batch must be created, directions on that file is located [here](#section-4-merge-configuration-file-structure "Title"). As mentioned above, this file will help define settings for how each antibody will be treated in the hierarchical merge, it also provides the code with useful metadata like which markers are in the panel and which opal each marker is in. 
+## ***Section 3: Installation and how to run***
+The software can be run in the command line or as a matlab function. The inputs to both are the same.
+- Check out or download the GitHub repo.
+### ***MATLAB*** ###
+1. Open MATLAB and set the source folder to the location of the MaSS repo
+   - E.g. ```C:\...\GitHub\MaSS```
+2. Enter the function to be run with the following inputs:
+   - ```MaSS(<wd>,<sname>,<mergeconfig>,<[logstring]>)```
+      - ```<wd>(string)```: working directory up to the *inform_data* folder
+      - ```<sname>(string)```: specimen name
+      - ```<mergeconfig>(string)```: fully qualified path to the merge configuration file
+      - ```<[logstring]>(string)```: optional logstring argument; used in the clinical specimen astropath pipeline, adds string to the start of each log line. Be sure to end the string with a ';' to ensure proper separation in the log messages
+   - E.g. ```MaSS('*DIR \inform_data','MXX','*DIR \MergeConfig_XX.xlsx');```
+     - Replace ```*DIR``` with the corresponding paths, ```MXX``` with the sample name, and ```MergeConfig_XX``` with the name of the merge configuration file. Once started, the code will generate a resulting .csv for every image on the ```inform_data``` folder
+### ***Command Line*** ###
+1. Open Command Prompt and cd into the location of the MATLAB file
+   - ```cd C:\...\GitHub\MaSS```
+2. Within the MaSS directory, run the script with the following inputs:
+   - ```matlab -nodesktop -nojvm -r "MaSS(<wd>,<sname>,<mergeconfig>,<[logstring]>)";```
+   - E.g. ```matlab -nodesktop -nojvm -r "MaSS('*DIR \inform_data','MXX','*DIR \MergeConfig_01.xlsx')";```
+3. For more information on running MATLAB code through command line, see this [MathWorks link](https://www.mathworks.com/help/matlab/ref/matlabwindows.html).
+### ***Additional Info*** ###
+Tips for defining file structure, generating files, and creating projects
+- Be sure to name the opals on the prepare tab in inForm®.  	
+- When naming the opals, use the same names as indicated in the file structure and the ‘Target’ column of the BatchID table. 
+- The labels in inForm® will not be case sensitive
+- For the Tumor marker, indicated by column 14, use the designation ‘Tumor’ instead of the full name, this is only required when creating the output folders, but may be useful in all aspects of this analysis
+- Refrain from using any illegal characters like ‘\’ or ‘-‘ 
+- When creating the tissue segmentation, include at least two categories labeling one as ‘NonTissue’
+- When creating the cell segmentation algorithm be sure to check the boxes for ‘Membrane’, ‘Nucleus’, and ‘Cytoplasm’
+- For the membrane segmentation outputs be sure that there are 4 layers 
+- *if inForm® is not exporting all layers to binary segmentation*
+  - open the project or algorithm in inForm®
+  - add and process an image to the export tab 
+  - click all segmentation layers to be visible and save the algorithm again, then use this algorithm to export the phenotype analysis
+  
+## ***Section 4: Workflow Description***
+In order to run the script, each marker in the multiplex panel must have separate classification table. This table should be in the ‘cell segmentation data’ export format as provided by the inForm®'s phenotype module. Each output for a specified marker, should have two defined phenotypes; one as the antibody name, i.e. ‘CD8’, and ‘Other’, case is not important. The data should be in the format defined [here](#section-5-image-and-table-file-structure "Title"). Tips on how to configure an InForm® project for compatibility with the MaSS program are defined at the end of [Section 4](#section-4-merge-configuration-file-structure "Title") and, in more detail, the accompanying protocol document [inForm Multipass Phenotype]. After the data has been exported and set in the proper format the merge configuration file for the batch must be created, directions on that file is located [here](#section-4-merge-configuration-file-structure "Title"). As mentioned above, this file will help define settings for how each antibody will be treated in the hierarchical merge, it also provides the code with useful metadata like which markers are in the panel and which opal each marker is in. 
 
 Once the data files are set up correctly, the code can be executed. The following part of this document will be used to define the logic steps taken to merge the cell data into a single coordinate system and is included for interested readers\ transparency. First, we define lineage markers and expression markers. Lineage markers, individually or in combination, are used here to define specific cell phenotypes. Expression markers are those that can be expressed on multiple cell lineages, usually at varying levels. Next a primary segmentation is defined, this segmentation is labeled as Segmentation Hierarchy: 1 in the merge cofiguration file. This segmentation should perform well on the majority of cell types featured in the panel. This is also where the ‘Other’ cell classification cell information, including x / y coordinates and intensity information, will come from. Secondary segmentation algorithms can be tailored for cells that do not segment well using the primary algorithm, i.e. larger tumor cells or machrophage. Following this all cells within 6 pixels of one another (~3um) are found. Cells without any lineage phenotype classification in a radius of 6 pixels are classified as ‘Other’, the rest of the cells in the 'Other' population are dropped. Following this, cells that are within 6 pixels of each other and are of the same type are collected. It is assumed that these are actually the same cell, so one of the cells should be removed. For these combinations, the code removes cells with lower total expression marker intensity. In the merge configuration file, cells may be designated to predominately express a specific expression marker; in this case priority is placed on that expression marker.
 
@@ -47,7 +83,7 @@ After this, a final clean up protocol is performed on the data wherein 'Other' c
 
 Finally, the code assigns positive expression marker phenotype calls to the cell objects their cell centers are contained in. Expression marker phenotypes with cell coordinates inside two cell membranes are assigned to the closest lineage cell, based on cell centers. 
 
-## ***Section 4: Merge Configuration File Structure***
+## ***Section 5: Merge Configuration File Structure***
 Merge Configuration file is a csv spreadsheet which indicates how the markers will be analyzed and merged to a single coordinate system where only one phenotype call exists for each cell. Columns are defined below, column names are case senstitive. Mark fields that do not have a designation as NA in character columns and 0s in numeric columns. 
 
 ![Figure 4 Image](www/Fig4.PNG)
@@ -104,7 +140,7 @@ Merge Configuration file is a csv spreadsheet which indicates how the markers wi
     - Options: 'red','green','blue','cyan', 'magenta','yellow','white','black','orange','coral'
     - Abbreviations: 'r','g','b','c','m','y','w','k','o','l'
 
-## ***Section 5: Image and Table File Structure***
+## ***Section 6: Image and Table File Structure***
 The code relies on a data organization format detailed below:<br>
 ```
 +--	DIR\ inform_data 
@@ -130,33 +166,7 @@ In each corresponding antibody folder, export the cell segmentation data tables,
 4. Membrane Segmentation
 
 Finally, add all the Component data, *_component_data.tiff*, images from the inForm® export for each field analyzed into the *Component_Tiffs* folder
-
-## ***Section 6: Installation and how to run***
-The executable is available on github either as a matlab function or as a deployable application. The inputs to both are the same, here we only describe the instructions for uses as a deployable application.
-1.	install the application on the desired computer by opening the distributed file ‘MaSS Installer.exe’ and following the onscreen prompts. MATLAB does not need to be installed for the software to work.
-    - The installer will download and install a version of MATLAB runtime if it is not already installed on the computer. Note that the code will run off of whatever drive the runtime is installed on. Furthermore, if the runtime is installed on the wrong drive, using windows, uninstall the application and MATLAB runtime instance, then reinstall 
-2.	Once installed, run from the command line as: 
-    -  ```CALL *\MaSS.exe wd sname mergeconfig [logstring] ```
-        - ```wd(string)```: working directory up to the *inform_data* folder
-        - ```sname(string)```: specimen name
-        - ```mergeconfig(string)```: fully qualified path to the merge configuration file
-        - ```[logstring](string)```: optional logstring arguement; used in the clinical specimen astropath pipeline, adds string to the start of each log line. Be sure to end the string with a ';' to ensure proper separation in the log messages
-    - E.g. ```CALL "C:\Program Files\Astropath\MaSS\application \MaSS.exe" "*DIR \inform_data" "MXX" “*DIR \MergeConfig_XX.xlsx”```
-      - Replace ```*DIR``` with the corresponding paths, ```MXX``` with the sample name, and ```MergeConfig_XX``` with the name of the merge configuration file. Unless changed during installation the path to the executable will be ```‘C:\Program Files\Astropath\MaSS\application’```. If the installation path is different, this should also be changed. Once started, the code will generate a resulting .csv for every image on the ```inform_data``` folder
-3. Tips for defining file structure, generating files, and creating projects
-   - Be sure to name the opals on the prepare tab in inForm®.  	
-   - When naming the opals, use the same names as indicated in the file structure and the ‘Target’ column of the BatchID table. 
-   -	The labels in inForm® will not be case sensitive
-   -	For the Tumor marker, indicated by column 14, use the designation ‘Tumor’ instead of the full name, this is only required when creating the output folders, but may be useful in all aspects of this analysis
-   -	Refrain from using any illegal characters like ‘\’ or ‘-‘ 
-   - When creating the tissue segmentation, include at least two categories labeling one as ‘NonTissue’
-   - When creating the cell segmentation algorithm be sure to check the boxes for ‘Membrane’, ‘Nucleus’, and ‘Cytoplasm’
-   -	For the membrane segmentation outputs be sure that there are 4 layers 
-   - *if inForm® is not exporting all layers to binary segmentation*
-     - open the project or algorithm in inForm®
-     - add and process an image to the export tab 
-     - click all segmentation layers to be visible and save the algorithm again, then use this algorithm to export the phenotype analysis
-     
+ 
 ## ***Section 7:	Output***
 The code outputs results tables into a ```*DIR\ inform_data\Phenotyped\Results\Tables``` folder which is created upon startup. The resultant tables have the same name as their corresponding images but contain the extension: ```*_cleaned_phenotype_table.csv``` after their image coordinates. The code also creates a MaSS.log file in this folder.
 This table contains 62 columns: 
@@ -202,15 +212,24 @@ The code also produces a folder named ```*\Results\tmp_inform_data```, which con
 ## ***Section 8: Create Image QA QC utility***
 v.0.01.001
 ### Section 8.1 Description/ running instructions
-In order to assess the performance of the cell phenotype algorithms on a large quantity of images, an algorithm was developed to selectively sample images and create modified visual displays of those images. This algorithm is a secondary application which must be downloaded and installed separately, it is called CreateImageQAQC. This code must be run after the MaSS protocol as it relies on the tmp_inform_data directory the MaSS tool creates. The code is relatively simple to run from a cmd prompt using the following:
-- ```CALL *\CreateImageQAQC.exe wd sname mergeconfig [logstring] [allimages] ```
-  - ```wd(string)```: working directory up to the *inform_data* folder
-  - ```sname(string)```: specimen name
-  - ```mergeconfig(string)```: fully qualified path to the merge configuration file
-  - ```[logstring](string)```: optional logstring arguement; used in the clinical specimen astropath pipeline, adds string to the start of each log line. Be sure to end the string with a ';' to ensure proper separation in the log messages
-  - ```[allimages](int)```: optional arguement to export QC on all images (1) or just the top 20 'hotspots' (0/ default). For this option, also pass a logsting agruement to the function as the variables are location specific in the function call
-- E.g.: CALL "C:\Program Files\Astropath\ CreateImageQAQC \application \ CreateImageQAQC.exe" "*DIR \inform_data\Phenotyped" "MXX" “*DIR \BatchID_XX.xlsx”
-  - Replace ```*DIR``` with the corresponding paths, ```MXX``` with the sample name, and ```MergeConfig_XX``` with the name of the merge configuration file. Unless changed during installation the path to the executable will be ```‘C:\Program Files\Astropath\MaSS\application’```. If the installation path is different, this should also be changed. 
+### ***MATLAB*** ###
+1. Open MATLAB and set the source folder to the location of the MaSS repo
+   - E.g. ```C:\...\GitHub\MaSS```
+2. Enter the function to be run with the following inputs:
+   - ```CreateImageQAQC(<wd>,<sname>,<mergeconfig>,<[logstring]>,<[allimages]>)```
+      - ```<wd>(string)```: working directory up to the *inform_data* folder
+      - ```<sname>(string)```: specimen name
+      - ```<mergeconfig>(string)```: fully qualified path to the merge configuration file
+      - ```<[logstring]>(string)```: optional logstring argument; used in the clinical specimen astropath pipeline, adds string to the start of each log line. Be sure to end the string with a ';' to ensure proper separation in the log messages
+      - ```<[allimages]>(int)```: optional arguement to export QC on all images (1) or just the top 20 'hotspots' (0/ default). For this option, also pass a logsting agruement to the function as the variables are location specific in the function call
+   - E.g. ```CreateImageQAQC('*DIR \inform_data','MXX','*DIR \MergeConfig_XX.xlsx');```
+     - Replace ```*DIR``` with the corresponding paths, ```MXX``` with the sample name, and ```MergeConfig_XX``` with the name of the merge configuration file. Once started, the code will generate a resulting .csv for every image on the ```inform_data``` folder
+### ***Command Line*** ###
+1. Open Command Prompt and cd into the location of the MATLAB file
+   - ```cd C:\...\GitHub\MaSS```
+2. Within the MaSS directory, run the script with the following inputs:
+   - ```matlab -nodesktop -nojvm -r "CreateImageQAQC(<wd>,<sname>,<mergeconfig>,<[logstring]>,<[allimages]>)";```
+   - E.g. ```matlab -nodesktop -nojvm -r "CreateImageQAQC('*DIR \inform_data','MXX','*DIR \MergeConfig_XX.xlsx')";```
 
 ### Section 8.2 Workflow Description
 The code first selects images for quality control based on user specifications. Only, images containing at least 60 tumor cells and images with at least 75 percent tissue coverage are considered for each sample. If a tumor cell designation is not included in the BatchID table, the tumor cell search criteria is removed. If less than 20 fields in the sample meet the search criteria, the minimum tissue coverage requirement is reduced by 6.25 percent. This is repeated until 20 fields meet the search criteria or the field tissue coverage search criteria decreases below 50 percent. If 20 fields or less than 20 fields are selected then performance testing is carried out on all fields. If more than 20 fields are selected, then the 20 highest designated ‘Immune’ cell density fields are selected for performance testing.

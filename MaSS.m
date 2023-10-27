@@ -155,6 +155,7 @@ try
 catch
     err_val = 15;
     err_handl(wd, sname, logstring, Markers, err_val, 'Tables');
+    return
 end
 %
 err_str = ['successfully merged ',num2str(nfiles),...
@@ -163,6 +164,7 @@ mywritetolog(wd, sname, logstring, err_str, 2, 'Tables');
 if any(cell2mat(e))
     err_val = 15;
     err_handl(wd, sname, logstring, Markers, err_val, 'Tables');
+    return
 end
 %
 if length(filenms) == nfiles
