@@ -94,7 +94,7 @@ else
 end 
 %
 err_val = mywritetolog(wd, sname, logstring, '', 1, 'Tables', version);
-e_code = err_handl(wd, sname, logstring, [], err_val, 'Tables');
+e_code = err_handl(wd, sname, logstring, [], err_val, 'Tables', '');
 if e_code == 1
     return
 end
@@ -113,11 +113,11 @@ try
     %
 catch
     err_val = 8;
-    err_handl(wd, sname, logstring, [], err_val, 'Tables');
+    err_handl(wd, sname, logstring, [], err_val, 'Tables', '');
     return
 end
 %
-e_code = err_handl(wd, sname, logstring, Markers, err_val, 'Tables');
+e_code = err_handl(wd, sname, logstring, Markers, err_val, 'Tables', '');
 if e_code == 1
     return
 end
@@ -129,15 +129,15 @@ mywritetolog(wd, sname, logstring, err_str, 2, 'Tables');
 %
 try
     %
-    [filenms, err_val] =  getfilenames(wd, Markers);
+    [filenms, sum_filenames, err_val] =  getfilenames(wd, Markers);
     %
 catch
     err_val = 13;
-    err_handl(wd, sname, logstring, Markers, err_val, 'Tables');
+    err_handl(wd, sname, logstring, Markers, err_val, 'Tables', '');
     return
 end
 %
-e_code = err_handl(wd, sname, logstring, Markers, err_val, 'Tables');
+e_code = err_handl(wd, sname, logstring, Markers, err_val, 'Tables', '');
 if e_code == 1
     return
 end
@@ -150,11 +150,11 @@ mywritetolog(wd, sname, logstring, err_str, 2, 'Tables');
 try
     %
     [e, nfiles, Markers] = ...
-        fileloop(wd, sname, filenms, Markers, logstring, imall);
+        fileloop(wd, sname, filenms, sum_filenames, Markers, logstring, imall);
     %
 catch
     err_val = 15;
-    err_handl(wd, sname, logstring, Markers, err_val, 'Tables');
+    err_handl(wd, sname, logstring, Markers, err_val, 'Tables', '');
     return
 end
 %
@@ -163,7 +163,7 @@ err_str = ['successfully merged ',num2str(nfiles),...
 mywritetolog(wd, sname, logstring, err_str, 2, 'Tables');
 if any(cell2mat(e))
     err_val = 15;
-    err_handl(wd, sname, logstring, Markers, err_val, 'Tables');
+    err_handl(wd, sname, logstring, Markers, err_val, 'Tables', '');
     return
 end
 %

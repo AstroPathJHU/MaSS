@@ -19,7 +19,8 @@ function err_val = imageloop(wd, uc, logstring, Markers, charts, doseg)
 err_val = 0;
 e = cell(length(charts),1);
 %
-parfor i2 = 1:length(charts)
+for i2 = 1:length(charts)
+    disp(i2);
     log_name = extractBefore(charts(i2).name, '_cleaned');
     try 
         %
@@ -44,7 +45,7 @@ parfor i2 = 1:length(charts)
             s{i2}, mycol{i2}, imageid{i2},...
             imc, simage, Markers, ima, imas);
         mkexprim(...
-            mycol{i2}, imageid{i2}, imc, Markers, ima, imas, wd);
+            mycol{i2}, imageid{i2}, imc, Markers, ima, imas);
         %
         err_str = ['CreateQAQC ', log_name, ' finished'];
         mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');

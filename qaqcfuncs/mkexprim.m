@@ -7,14 +7,14 @@
 %% --------------------------------------------------------------
 %%
 function mkexprim(mycol, imageid, im,...
-    Markers, im_full_color, im_full_color_seg)
+    Markers, im_full_color, im_full_color_seg, wd)
 %
 [Image,~] = getset(Markers,imageid);
 %
 % get the segmentations for each expression variable, including dual 
 % segmentations 
 %
-[ims, expr, d2] = getSegMaps(imageid, Markers);
+[ims, expr, d2] = getSegMaps(imageid, Markers, wd);
 %
 for t = 1:length(expr.namtypes)
     %

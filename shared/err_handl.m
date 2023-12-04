@@ -9,10 +9,10 @@
 % (warnings)
 %% --------------------------------------------------------
 %%
-function e_code = err_handl(wd, sname, logstring, Markers, err_val, tasktype)
+function e_code = err_handl(wd, sname, logstring, Markers, err_val, tasktype, err_msg)
 %
 if strcmp(tasktype, 'Tables')
-    e_code = err_handl_tables(wd, sname, logstring, Markers, err_val);
+    e_code = err_handl_tables(wd, sname, logstring, Markers, err_val, err_msg);
 else
     e_code = err_handl_qaqc(wd, sname, logstring, Markers, err_val);
 end

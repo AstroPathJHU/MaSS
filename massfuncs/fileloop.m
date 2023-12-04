@@ -8,7 +8,7 @@
 %% --------------------------------------------------------
 %%
 function [errors, nfiles, Markers] = fileloop(...
-    wd, sname, filenms, Markers, logstring, imall)
+    wd, sname, filenms, sum_filenames, Markers, logstring, imall)
 %
 tic
 errors = cell(length(filenms), 1);
@@ -36,10 +36,22 @@ end
 %
 % loop through the mergetbls function for each sample with error catching
 %
+seg_markers = [Markers.seg, Markers.altseg];
+dep_markers = setdiff(Markers.all, seg_markers);
+for i1 = 1:length(Markers.nsegs)
+    if Markers.nsegs(i1) > 1
+        for i2 = 2:Markers.nsegs(i1)
+            dep_markers = [dep_markers, strjoin([Markers.all(i1), '_', num2str(i2)], '')];
+        end
+    end
+end
+marker_order = [seg_markers, dep_markers];
+header = ['Image', marker_order, 'Clusters'];
+writecell(header, [wd, '\Phenotyped\Results\cells.csv'],'WriteMode','overwrite')
 parfor i1 = 1:length(filenms)
     errors = cell(length(filenms), 1);
     [errors] = mergeloop(...
-    filenms, i1, errors, Markers, wd, 0, sname, logstring);
+    filenms, sum_filenames, i1, errors, Markers, wd, 0, sname, logstring, seg_markers, dep_markers);
 end
 %
 % Check if matlab files were created for QAQC step
@@ -50,7 +62,7 @@ if length(dir(figtabledir)) < 3
     parfor i1 = 1:length(filenms)
         errors = cell(length(filenms), 1);
         [errors] = mergeloop(...
-        filenms, i1, errors, Markers, wd, 1, sname, logstring);
+        filenms, sum_filenames, i1, errors, Markers, wd, 1, sname, logstring);
     end
 end
 %

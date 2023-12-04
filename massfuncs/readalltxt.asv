@@ -167,8 +167,8 @@ end
 marker_names = [['Image', marker_order, 'Clusters']; 
     [image_name, num2cell(B), join(clusters, '')]];
 segmentations = table(marker_names);
-output = [image_name, num2cell(B), join(clusters, '')];
-writecell(output, [wd, '\Phenotyped\Results\cells.csv'],'WriteMode','append')
+    output = [image_name, num2cell(B), join(clusters, '')];
+    writecell(output, [wd, '\Phenotyped\Results\cells.csv'],'WriteMode','append')
 if e_code == 20
     err_msg = [image_name, ' does not match any segmentations.'];
 end

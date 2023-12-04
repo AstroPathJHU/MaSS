@@ -8,13 +8,14 @@
 % it generates a *\Tables\ directory and merged inform files
 %% --------------------------------------------------------------
 %%
-function [fData, e_code] = mergetbls(fname, Markers, wd, imall)
+function [fData, e_code, err_msg] = mergetbls(fname, sum_fname, Markers, wd, imall, i1, seg_markers, dep_markers)
 %
 fData = [];
+err_msg = '';
 %
 % read in data
 %
-[C, units, e_code] = readalltxt(fname, Markers, wd);
+[C, units, e_code, err_msg] = readalltxt(fname, sum_fname, Markers, wd, i1, seg_markers, dep_markers);
 %
 if e_code ~= 0
     return
@@ -43,6 +44,7 @@ q = getcoex(d, Markers);
 %
 a = getseg(q, Markers);
 if isa(a, 'double')
+    disp(a);
     e_code = 18;
     return
 end

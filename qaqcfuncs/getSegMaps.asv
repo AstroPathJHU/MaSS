@@ -19,7 +19,7 @@
 % d.fig = columns for multiple segmentations divided into parts
 %% --------------------------------------------------------------
 %%
-function [ims, expr, d2] = getSegMaps(imageid, Markers, wd)
+function [ims, expr, d2] = getSegMaps(imageid, Markers)
 %
 % get antibody folder names
 %
@@ -65,6 +65,7 @@ seg_table = cells_table(:,seg_types);
 imname = imageid.id(1:end-1);
 index = find(strcmp(cells_table.('Image'), imname));
 for i1 = 1:length(xy_expr)
+    disp('here')
     %
     % find segmentations that have the same number of cells
     %

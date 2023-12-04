@@ -132,7 +132,7 @@ mywritetolog(wd, sname, logstring, err_str, 2, 'QA_QC');
 %
 try
     %
-    [charts, err_val] = mkpaths(Markers, wd, allimages, doseg);
+    [charts1, err_val] = mkpaths(Markers, wd, allimages, doseg);
     %
 catch
     err_val = 11;
@@ -145,12 +145,12 @@ if e_code == 1
     return
 end
 %
-err_str = ['creating output for ', num2str(length(charts)),' fields'];
+err_str = ['creating output for ', num2str(length(charts1)),' fields'];
 mywritetolog(wd, sname, logstring, err_str, 2, 'QA_QC');
 %
 try 
     %
-    err_val = imageloop(wd, sname, logstring, Markers, charts, doseg);
+    err_val = imageloop(wd, sname, logstring, Markers, charts1, doseg);
     %
 catch
     err_val = 14;

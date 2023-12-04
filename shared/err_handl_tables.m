@@ -8,7 +8,7 @@
 % (warnings)
 %% --------------------------------------------------------
 %%
-function e_code = err_handl_tables(wd, sname, logstring, Markers, err_val)
+function e_code = err_handl_tables(wd, sname, logstring, Markers, err_val, err_msg)
 %
 if err_val ~= 0
     %
@@ -102,6 +102,9 @@ if err_val ~= 0
             e_code = 1;
         case 19
             err_str = ['ERROR: Cell segmentation file missing'];
+            e_code = 1;
+        case 20
+            err_str = ['ERROR: ' err_msg];
             e_code = 1;
     end
     %

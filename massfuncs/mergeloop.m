@@ -8,11 +8,12 @@
 %% --------------------------------------------------------
 %%
 function [errors] = mergeloop(...
-    filenms, i1, errors, Markers, wd, imall, sname, logstring)
+    filenms, sum_filenames, i1, errors, Markers, wd, imall, sname, logstring, seg_markers, dep_markers)
     %
     % current filename
     %
     fname = filenms(i1);
+    sum_fname = sum_filenames(i1);
     nm = extractBefore(fname.name,"_cell_seg");
     if isempty(nm)
         nm = extractBefore(fname.name,"_CELL_SEG");
@@ -22,7 +23,7 @@ function [errors] = mergeloop(...
     % try each image through the merge tables function
     %
     try
-        [fData, e_code] = mergetbls(fname, Markers, wd, imall);
+        [fData, e_code, err_msg] = mergetbls(fname, sum_fname, Markers, wd, imall, i1, seg_markers, dep_markers);
         errors{i1} = 0;
         %
         if isempty(fData) && e_code == 0
@@ -31,13 +32,15 @@ function [errors] = mergeloop(...
         %
         if e_code ~= 0
             %
-            err_handl(wd, sname, logstring, log_name, e_code, 'Tables');
+            disp(e_code);
+            err_handl(wd, sname, logstring, log_name, e_code, 'Tables', err_msg);
             errors{i1} = 1;
             %
         end
         %
-    catch
-       err_handl(wd, sname, logstring, log_name, 14, 'Tables');
+    catch EM
+        disp(EM);
+       err_handl(wd, sname, logstring, log_name, 14, 'Tables', '');
        errors{i1} = 1;  
     end
     %
