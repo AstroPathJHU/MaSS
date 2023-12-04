@@ -114,15 +114,6 @@ end
 concat.fname = filename;
 segs = unique(Markers.SegStatus);
 B = [];
-% seg_markers = [Markers.seg, Markers.altseg];
-% dep_markers = setdiff(Markers.all, seg_markers);
-% for i1 = 1:length(Markers.nsegs)
-%     if Markers.nsegs(i1) > 1
-%         for i2 = 2:Markers.nsegs(i1)
-%             dep_markers = [dep_markers, strjoin([Markers.all(i1), '_', num2str(i2)], '')];
-%         end
-%     end
-% end
 for i1 = 1:length(seg_markers)
     folder = strsplit(sum_fname.folder, '\');
     folder(end) = [];
@@ -143,8 +134,6 @@ for i1 = 1:length(dep_markers)
     end
     B = [B, max(data.TotalCells)];
 end
-cells_table = readtable([wd, '\Phenotyped\Results\cells.csv']);
-cells_table = rmmissing(cells_table);
 image_name = strsplit(filename.name, ']');
 image_name = join([image_name(1), ']'], '');
 marker_order = [seg_markers, dep_markers];
@@ -164,9 +153,6 @@ for ii=1:length(v)
     clusters = [clusters, join(['(',join(these_marks, ','),')'], '')];
 end
 
-marker_names = [['Image', marker_order, 'Clusters']; 
-    [image_name, num2cell(B), join(clusters, '')]];
-segmentations = table(marker_names);
 output = [image_name, num2cell(B), join(clusters, '')];
 writecell(output, [wd, '\Phenotyped\Results\cells.csv'],'WriteMode','append')
 if e_code == 20
