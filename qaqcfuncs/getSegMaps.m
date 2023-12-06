@@ -69,7 +69,7 @@ for i1 = 1:length(xy_expr)
     % find segmentations that have the same number of cells
     %
     seg_cells = table2array(seg_table(index,:));
-    expr_cells = cells_table(index,:).(AB_fdnames{i1});        
+    expr_cells = cells_table(index,:).(AB_fdnames{i1}); 
     idx = find(expr_cells == seg_cells);
     if isempty(idx)
         coord = strsplit(imageid.id, '_');

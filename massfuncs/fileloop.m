@@ -59,6 +59,7 @@ end
 %
 figtabledir = [wd, '\Phenotyped\Results\tmp_ForFiguresTables'];
 if length(dir(figtabledir)) < 3
+    writecell(header, [wd, '\Phenotyped\Results\cells.csv'],'WriteMode','overwrite')
     parfor i1 = 1:length(filenms)
         errors = cell(length(filenms), 1);
         [errors] = mergeloop(...
