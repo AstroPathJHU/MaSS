@@ -114,6 +114,7 @@ end
 concat.fname = filename;
 segs = unique(Markers.SegStatus);
 B = [];
+seg_mark = [];
 for i1 = 1:length(seg_markers)
     folder = strsplit(sum_fname.folder, '\');
     folder(end) = [];
@@ -121,6 +122,7 @@ for i1 = 1:length(seg_markers)
     folder = ['\', strjoin(folder, '\')];
     data = readtable([folder, '\', sum_fname.name]);
     B = [B, max(data.TotalCells)];
+    seg_mark = [seg_mark, max(data.TotalCells)];
 end
 for i1 = 1:length(dep_markers)
     folder = strsplit(sum_fname.folder, '\');
@@ -128,7 +130,7 @@ for i1 = 1:length(dep_markers)
     folder = [folder, dep_markers(i1)];
     folder = ['\', strjoin(folder, '\')];
     data = readtable([folder, '\', sum_fname.name]);
-    idx = find(max(data.TotalCells) == B);
+    idx = find(max(data.TotalCells) == seg_mark);
     if isempty(idx)
         e_code = 20;
     end
