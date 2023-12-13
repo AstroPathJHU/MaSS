@@ -104,7 +104,7 @@ if err_val ~= 0
             err_str = ['ERROR: Cell segmentation file missing'];
             e_code = 1;
         case 20
-            err_str = ['ERROR: ' err_msg];
+            err_str = strjoin(['ERROR:' err_msg]);
             e_code = 1;
     end
     %

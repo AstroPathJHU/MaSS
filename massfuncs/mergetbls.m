@@ -44,7 +44,6 @@ q = getcoex(d, Markers);
 %
 a = getseg(q, Markers);
 if isa(a, 'double')
-    disp(a);
     e_code = 18;
     return
 end

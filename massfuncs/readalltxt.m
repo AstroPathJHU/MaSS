@@ -57,7 +57,6 @@ if idx
             try 
                 [v3{idx_count},units3] = readtxt(filename,x, wd, layers); %#ok<AGROW>
             catch EM
-                disp(filename);
                 disp(EM);
                 
                 e_code = 19;
@@ -80,7 +79,6 @@ v = [v,v2,v3];
 for i3 = 1:length(Markers.lin)
     concat.(Markers.lin{i3}) = v{i3};
 end
-
 %
 % get expr markers out of v and put them into struct C, merging tables for 
 % antibodies with multiple segmentations
@@ -115,6 +113,7 @@ concat.fname = filename;
 segs = unique(Markers.SegStatus);
 B = [];
 seg_mark = [];
+failed = [];
 for i1 = 1:length(seg_markers)
     folder = strsplit(sum_fname.folder, '\');
     folder(end) = [];
@@ -133,6 +132,7 @@ for i1 = 1:length(dep_markers)
     idx = find(max(data.TotalCells) == seg_mark);
     if isempty(idx)
         e_code = 20;
+        failed = [failed, dep_markers(i1), ' '];
     end
     B = [B, max(data.TotalCells)];
 end
@@ -154,11 +154,10 @@ for ii=1:length(v)
     end
     clusters = [clusters, join(['(',join(these_marks, ','),')'], '')];
 end
-
 output = [image_name, num2cell(B), join(clusters, '')];
 writecell(output, [wd, '\Phenotyped\Results\cells.csv'],'WriteMode','append')
 if e_code == 20
-    err_msg = [image_name, ' does not match any segmentations.'];
+    err_msg = [image_name, failed, 'does not match any segmentations.'];
 end
 %
 end

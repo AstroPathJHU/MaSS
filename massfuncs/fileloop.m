@@ -58,12 +58,12 @@ end
 % If not run without Tumor check
 %
 figtabledir = [wd, '\Phenotyped\Results\tmp_ForFiguresTables'];
-if length(dir(figtabledir)) < 3
+if length(dir(figtabledir)) < 3 && any(errors == 20)
     writecell(header, [wd, '\Phenotyped\Results\cells.csv'],'WriteMode','overwrite')
     parfor i1 = 1:length(filenms)
         errors = cell(length(filenms), 1);
         [errors] = mergeloop(...
-        filenms, sum_filenames, i1, errors, Markers, wd, 1, sname, logstring);
+        filenms, sum_filenames, i1, errors, Markers, wd, 1, sname, logstring, seg_markers, dep_markers);
     end
 end
 %

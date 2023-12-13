@@ -32,15 +32,13 @@ function [errors] = mergeloop(...
         %
         if e_code ~= 0
             %
-            disp(e_code);
             err_handl(wd, sname, logstring, log_name, e_code, 'Tables', err_msg);
-            errors{i1} = 1;
+            errors{i1} = e_code;
             %
         end
         %
     catch EM
-        disp(EM);
-       err_handl(wd, sname, logstring, log_name, 14, 'Tables', '');
-       errors{i1} = 1;  
+        err_handl(wd, sname, logstring, log_name, 14, 'Tables', '');
+        errors{i1} = 1;  
     end
     %

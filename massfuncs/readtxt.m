@@ -32,7 +32,6 @@ try
         'Delimiter', '\t', 'TreatAsEmpty', {' ','#N/A'});
 catch E
     disp(E);
-    disp(nm1);
     %
     nm = extractBefore(filnm.name,"]_cell_seg");
     if isempty(nm)
@@ -41,13 +40,11 @@ catch E
     %
     try
         nm1 = [wd,'\Phenotyped\',marker,'\', nm, ']_CELL_SEG_DATA.TXT'];
-        disp(nm1);
         T = readtable(nm1,'Format',formatspec,...
             'Delimiter','\t','TreatAsEmpty',{' ','#N/A'});
     catch E
         disp(E);
          nm1 = [wd,'\Phenotyped\',marker,'\', nm, ']_cell_seg_data.txt'];
-         disp(nm1);
          T = readtable(nm1,'Format',formatspec,...
         'Delimiter','\t','TreatAsEmpty',{' ','#N/A'});
     end
