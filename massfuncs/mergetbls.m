@@ -8,14 +8,16 @@
 % it generates a *\Tables\ directory and merged inform files
 %% --------------------------------------------------------------
 %%
-function [fData, e_code, err_msg] = mergetbls(fname, sum_fname, Markers, wd, imall, i1, seg_markers, dep_markers)
+function [fData, output, e_code, err_msg] = mergetbls(fname, sum_fname,... 
+    Markers, wd, imall, i1, seg_markers, dep_markers)
 %
 fData = [];
 err_msg = '';
 %
 % read in data
 %
-[C, units, e_code, err_msg] = readalltxt(fname, sum_fname, Markers, wd, i1, seg_markers, dep_markers);
+[C, units, e_code, output, err_msg] = readalltxt(fname, sum_fname,... 
+    Markers, wd, i1, seg_markers, dep_markers);
 %
 if e_code ~= 0
     return

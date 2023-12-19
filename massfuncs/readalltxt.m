@@ -9,7 +9,9 @@
 % in the file tree described below in the input section
 %% --------------------------------------------------------
 %%
-function [concat, units, e_code, err_msg] = readalltxt(filename,sum_fname,Markers,wd, pari, seg_markers, dep_markers)
+function [concat, units, e_code, output, err_msg] = ...
+    readalltxt(filename,sum_fname,Markers,wd, pari, seg_markers,...
+    dep_markers)
 %%-------------------------------------------------------------------------
 %% get all the phenotypes, coordinates, intensties into a single table
 %% 
@@ -155,7 +157,7 @@ for ii=1:length(v)
     clusters = [clusters, join(['(',join(these_marks, ','),')'], '')];
 end
 output = [image_name, num2cell(B), join(clusters, '')];
-writecell(output, [wd, '\Phenotyped\Results\cells.csv'],'WriteMode','append')
+% writecell(output, [wd, '\Phenotyped\Results\cells.csv'],'WriteMode','append')
 if e_code == 20
     err_msg = [image_name, failed, 'does not match any segmentations.'];
 end

@@ -48,10 +48,13 @@ end
 marker_order = [seg_markers, dep_markers];
 header = ['Image', marker_order, 'Clusters'];
 writecell(header, [wd, '\Phenotyped\Results\cells.csv'],'WriteMode','overwrite')
+output = cell(length(filenms), 1);
+% fix output stuff plz
 parfor i1 = 1:length(filenms)
     errors = cell(length(filenms), 1);
-    [errors] = mergeloop(...
-    filenms, sum_filenames, i1, errors, Markers, wd, 0, sname, logstring, seg_markers, dep_markers);
+    [output{i1}, errors] = mergeloop(...
+    filenms, sum_filenames, i1, errors, Markers, wd, 0, sname,...
+    logstring, seg_markers, dep_markers);
 end
 %
 % Check if matlab files were created for QAQC step
@@ -60,11 +63,16 @@ end
 figtabledir = [wd, '\Phenotyped\Results\tmp_ForFiguresTables'];
 if length(dir(figtabledir)) < 3 && any(errors == 20)
     writecell(header, [wd, '\Phenotyped\Results\cells.csv'],'WriteMode','overwrite')
+    output = cell(length(filenms), 1);  
     parfor i1 = 1:length(filenms)
         errors = cell(length(filenms), 1);
-        [errors] = mergeloop(...
-        filenms, sum_filenames, i1, errors, Markers, wd, 1, sname, logstring, seg_markers, dep_markers);
+        [output{i1}, errors] = mergeloop(...
+        filenms, sum_filenames, i1, errors, Markers, wd, 1, sname,...
+        logstring, seg_markers, dep_markers);
     end
+end
+for i1 = 1:length(output)
+    writecell(output{i1}, [wd, '\Phenotyped\Results\cells.csv'],'WriteMode','append')
 end
 %
 % close parallel loop

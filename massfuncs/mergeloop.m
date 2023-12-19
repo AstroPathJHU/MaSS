@@ -7,8 +7,9 @@
 % handling
 %% --------------------------------------------------------
 %%
-function [errors] = mergeloop(...
-    filenms, sum_filenames, i1, errors, Markers, wd, imall, sname, logstring, seg_markers, dep_markers)
+function [output, errors] = mergeloop(...
+    filenms, sum_filenames, i1, errors, Markers, wd, imall, sname,...
+    logstring, seg_markers, dep_markers)
     %
     % current filename
     %
@@ -23,7 +24,8 @@ function [errors] = mergeloop(...
     % try each image through the merge tables function
     %
     try
-        [fData, e_code, err_msg] = mergetbls(fname, sum_fname, Markers, wd, imall, i1, seg_markers, dep_markers);
+        [fData, output, e_code, err_msg] = mergetbls(fname, sum_fname,... 
+            Markers, wd, imall, i1, seg_markers, dep_markers);
         errors{i1} = 0;
         %
         if isempty(fData) && e_code == 0
