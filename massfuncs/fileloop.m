@@ -61,7 +61,8 @@ end
 % If not run without Tumor check
 %
 figtabledir = [wd, '\Phenotyped\Results\tmp_ForFiguresTables'];
-if length(dir(figtabledir)) < 3 && any(errors == 20)
+if length(dir(figtabledir)) < 3
+    disp('no results');
     writecell(header, [wd, '\Phenotyped\Results\cells.csv'],'WriteMode','overwrite')
     output = cell(length(filenms), 1);  
     parfor i1 = 1:length(filenms)

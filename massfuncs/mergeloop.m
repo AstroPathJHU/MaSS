@@ -30,6 +30,7 @@ function [output, errors] = mergeloop(...
         %
         if isempty(fData) && e_code == 0
             e_code = 14;
+            errors{i1} = e_code;
         end
         %
         if e_code ~= 0
