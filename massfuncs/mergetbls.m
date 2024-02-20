@@ -11,6 +11,8 @@
 function [fData, output, e_code, err_msg] = mergetbls(fname, sum_fname,... 
     Markers, wd, imall, i1, seg_markers, dep_markers)
 %
+e_code = 0;
+output = '';
 fData = [];
 err_msg = '';
 %
@@ -27,11 +29,15 @@ end
 %
 if any(~strcmp(units, 'pixels'))
     e_code = 17;
+    return
 end
 %
 % select proper phenotypes
 %
-f = getphenofield(C, Markers, units);
+[f, e_code] = getphenofield(C, Markers, units);
+if e_code ~= 0
+    return
+end
 %
 % remove cells within X number of pixels in cells
 %

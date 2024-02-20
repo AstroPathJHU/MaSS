@@ -10,7 +10,8 @@
 % algorithm; add the file name as an extra field in the output structure
 %% --------------------------------------------------------
 %%
-function f = getphenofield(C, Markers, units)
+function [f, e_code] = getphenofield(C, Markers, units)
+e_code = 0;
 %
 % get the X and Y resolution + image size for unit conversions 
 %
@@ -23,7 +24,14 @@ if isempty(iname)
         "]_CELL_SEG"),']_component_data.tif'];
 end
 %
-imageinfo = imfinfo(iname);
+try
+    imageinfo = imfinfo(iname);
+catch
+    strings = split(iname, '\');
+    e_code = 21;
+    f = [];
+    return
+end
 W = imageinfo.Width;
 H = imageinfo.Height;
 scalea = 10^4 *(1/imageinfo(1).XResolution); % UM/PX

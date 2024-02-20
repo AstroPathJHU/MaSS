@@ -41,7 +41,12 @@ function [output, errors] = mergeloop(...
         end
         %
     catch EM
-        err_handl(wd, sname, logstring, log_name, 14, 'Tables', '');
+        if contains(EM.message, "file format")
+            e_code = 21;
+        else
+            e_code = 14;
+        end
+        err_handl(wd, sname, logstring, log_name, e_code, 'Tables', '');
         errors{i1} = 1;  
     end
     %

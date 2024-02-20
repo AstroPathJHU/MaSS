@@ -106,9 +106,14 @@ if err_val ~= 0
         case 20
             err_str = strjoin(['ERROR:' err_msg]);
             e_code = 1;
+        case 21
+            err_str = ['ERROR: Check for empty or corrupt inform output files'];
+            e_code = 1;
+        case 22
+            err_str = ['ERROR: Check for empty or corrupt component files'];
+            e_code = 1;
     end
     %
-    %disp([sname, ';',err_str])
     mywritetolog(wd, sname, logstring, err_str, 2, 'Tables');
     %
 else

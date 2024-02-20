@@ -152,7 +152,8 @@ try
     [e, nfiles, Markers] = ...
         fileloop(wd, sname, filenms, sum_filenames, Markers, logstring, imall);
     %
-catch
+catch EM
+    disp(EM.message);
     err_val = 15;
     err_handl(wd, sname, logstring, Markers, err_val, 'Tables', '');
     return

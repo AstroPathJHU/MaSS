@@ -17,6 +17,7 @@ function [concat, units, e_code, output, err_msg] = ...
 %% 
 %%-------------------------------------------------------------------------
 e_code = 0;
+output = '';
 err_msg = '';
 %
 % Create a string vector which contains desired variables from the inform
@@ -60,7 +61,6 @@ if idx
                 [v3{idx_count},units3] = readtxt(filename,x, wd, layers); %#ok<AGROW>
             catch EM
                 disp(EM);
-                
                 e_code = 19;
                 return
             end
