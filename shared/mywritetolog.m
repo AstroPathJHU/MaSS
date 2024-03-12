@@ -49,6 +49,7 @@ if locs == 1
     %
     str = ['MaSS-', tasktype, ' protocol started-v',version, '\n'];
     %
+    fprintf(str);
 end
 %
 % for error or warning messages write the message out in the correct format
@@ -58,6 +59,8 @@ if locs == 2
     if strcmpi(err_str, 'ERROR:')
         error(err_str);
     end
+    %
+    fprintf([err_str, '\n'])
     %
 end
 %
