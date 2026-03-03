@@ -75,7 +75,7 @@ try
             nms = {charts(:).name};
             query3 = cell(1,length(charts));
             query2 = cell(1,length(charts));
-            parfor i2 = 1:length(charts)
+            for i2 = 1:length(charts)
                 nm = nms{i2};
                 [query2{i2},query3{i2}] = delextrfields(fd,nm,wd,Markers,...
                     formatspec,inc);

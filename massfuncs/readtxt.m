@@ -31,7 +31,6 @@ try
     T = readtable(nm1, 'Format', formatspec,...
         'Delimiter', '\t', 'TreatAsEmpty', {' ','#N/A'});
 catch E
-    disp(E);
     %
     nm = extractBefore(filnm.name,"]_cell_seg");
     if isempty(nm)
@@ -43,7 +42,6 @@ catch E
         T = readtable(nm1,'Format',formatspec,...
             'Delimiter','\t','TreatAsEmpty',{' ','#N/A'});
     catch E
-        disp(E);
          nm1 = [wd,'\Phenotyped\',marker,'\', nm, ']_cell_seg_data.txt'];
          T = readtable(nm1,'Format',formatspec,...
         'Delimiter','\t','TreatAsEmpty',{' ','#N/A'});
@@ -90,7 +88,7 @@ for i1 = 1:length(OpalTypes)
         for i3 = 1:length(datatypes)
             ii = contains(newnames, OpalTypes{i1}) & ...
                 contains(newnames, datatypes{i3}) & ...
-                contains(newnames, CellCompartments{i2});
+                startsWith(newnames, CellCompartments{i2});
             if any(ii)
                 newnames{ii} = [datatypes{i3},CellCompartments{i2},OpalTypes{i1}];
             end

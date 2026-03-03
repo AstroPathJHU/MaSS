@@ -21,6 +21,7 @@ e = cell(length(charts),1);
 %
 parfor i2 = 1:length(charts)
     log_name = extractBefore(charts(i2).name, '_cleaned');
+    disp(charts(i2).name);
     try 
         %
         %open mat lab data structure
@@ -86,8 +87,8 @@ end
 %
 % remove tmp_ForFiguresTables
 %
-poolobj = gcp('nocreate');
-delete(poolobj);
+% poolobj = gcp('nocreate');
+% delete(poolobj);
 %
 if any(cell2mat(e))
     err_val = 14;

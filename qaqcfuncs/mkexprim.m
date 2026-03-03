@@ -62,6 +62,10 @@ for t = 1:length(expr.namtypes)
             Image,im_full_color, im_full_color_seg, data, d2{t}, imend, ...
             ime_noseg, imend_noseg, compartment);
         %
+    else
+        disp(['WARNING: no phenotype images created for ', ...
+            expr.namtypes{t}, '. Make sure marker name in', ...
+            'phenotype output matches marker name in Mergeconfig file.']);
     end
 end
 end

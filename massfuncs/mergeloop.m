@@ -46,6 +46,7 @@ function [output, errors] = mergeloop(...
         else
             e_code = 14;
         end
+        disp(EM);
         err_handl(wd, sname, logstring, log_name, e_code, 'Tables', '');
         errors{i1} = 1;  
     end

@@ -61,13 +61,13 @@ if err_val ~= 0
                 Markers.seg{1}];
             e_code = 1;
         case 12
-            err_str = ['ERROR: check binary segmentation maps in ',mark];
+            err_str = ['ERROR: check binary segmentation maps in ',Markers.seg{1}];
             e_code = 1;
         case 13
             err_str = 'ERROR: check inForm output files';
             e_code = 1;
         case 14
-            err_str = ['ERROR: ', Markers,' failed'];
+            err_str = ['ERROR: ', Markers.seg{1},' failed'];
             %
             nm = [Markers,'_cleaned_phenotype_table.csv'];
             ftd = fullfile([wd,'\Phenotyped\Results\Tables'],nm);

@@ -13,7 +13,7 @@ function mktmp = parsave(fData, fname, Markers, wd, imall)
 %
 % first check that there are enough columns to match the 9 color protocol
 %
-if width(fData.fig) < 83
+if width(fData.fig) < 92
     vars.Opals = {'DAPI','480','520','540','570','620','650','690','780'};
     vars.type = [repmat({'Mean'},1,4), repmat({'Total'},1,4)];
     vars.comp = repmat({'Nucleus', 'Membrane','EntireCell','Cytoplasm'},1,2);

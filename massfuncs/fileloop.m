@@ -38,7 +38,7 @@ end
 %
 seg_markers = [Markers.seg, Markers.altseg];
 dep_markers = setdiff(Markers.all, seg_markers);
-for i1 = 1:length(Markers.nsegs)
+parfor i1 = 1:length(Markers.nsegs)
     if Markers.nsegs(i1) > 1
         for i2 = 2:Markers.nsegs(i1)
             dep_markers = [dep_markers, strjoin([Markers.all(i1), '_', num2str(i2)], '')];
@@ -50,7 +50,7 @@ header = ['Image', marker_order, 'Clusters'];
 writecell(header, [wd, '\Phenotyped\Results\cells.csv'],'WriteMode','overwrite')
 output = cell(length(filenms), 1);
 % fix output stuff plz
-parfor i1 = 1:length(filenms)
+for i1 = 1:length(filenms)
     errors = cell(length(filenms), 1);
     [output{i1}, errors] = mergeloop(...
     filenms, sum_filenames, i1, errors, Markers, wd, 0, sname,...
