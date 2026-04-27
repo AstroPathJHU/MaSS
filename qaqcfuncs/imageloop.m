@@ -14,54 +14,80 @@
 %%%  Loop through all images with proper error handling
 %% --------------------------------------------------------------
 %%
-function err_val = imageloop(wd, uc, logstring, Markers, charts, doseg)
+function err_val = imageloop(wd, uc, logstring, Markers, charts, doseg, use_parallel)
 %
 err_val = 0;
 e = cell(length(charts),1);
+if nargin < 7
+    use_parallel = false;
+end
 %
-parfor i2 = 1:length(charts)
-    log_name = extractBefore(charts(i2).name, '_cleaned');
-    disp(charts(i2).name);
-    try 
-        %
-        %open mat lab data structure
-        %
-        err_str = ['CreateQAQC ', log_name, ' started'];
-        mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');
-        %
-        [s{i2}, imageid{i2}, mycol{i2}, imc, simage]...
-            =  mkimageid(charts, i2, wd, Markers, doseg); %#ok<PFOUS,PFBNS>
-        s{i2}.fig.CellXPos = round(s{i2}.fig.CellXPos);
-        s{i2}.fig.CellYPos = round(s{i2}.fig.CellYPos);
-        %
-        %make overlayed phenotype map and save the data stucture for later
-        %
-        [s{i2},ima, imas] = mkphenim(s{i2}, Markers, mycol{i2},...
-            imageid{i2}, imc, simage, doseg);
-        %
-        %make moscaics for expression and lineage markers
-        %
-        mkindvphenim(...
-            s{i2}, mycol{i2}, imageid{i2},...
-            imc, simage, Markers, ima, imas);
-        mkexprim(...
-            mycol{i2}, imageid{i2}, imc, Markers, ima, imas, wd);
-        %
-        err_str = ['CreateQAQC ', log_name, ' finished'];
-        mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');
-        e{i2} = 0;
-    catch E
-        if contains(E.message, "expression segmentation")
-            e{i2} = 1;
-            err_str = ['ERROR: ', E.message, ' does not match primary segmentation'];
+if use_parallel
+    parfor i2 = 1:length(charts)
+        log_name = extractBefore(charts(i2).name, '_cleaned');
+        disp(charts(i2).name);
+        try
+            err_str = ['CreateQAQC ', log_name, ' started'];
             mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');
-        else
-            e{i2} = 1;
-            err_str = ['ERROR: CreateQAQC ', log_name, ' failed'];
+            [s{i2}, imageid{i2}, mycol{i2}, imc, simage]...
+                =  mkimageid(charts, i2, wd, Markers, doseg); %#ok<PFOUS,PFBNS>
+            s{i2}.fig.CellXPos = round(s{i2}.fig.CellXPos);
+            s{i2}.fig.CellYPos = round(s{i2}.fig.CellYPos);
+            [s{i2},ima, imas] = mkphenim(s{i2}, Markers, mycol{i2},...
+                imageid{i2}, imc, simage, doseg);
+            mkindvphenim(...
+                s{i2}, mycol{i2}, imageid{i2},...
+                imc, simage, Markers, ima, imas);
+            mkexprim(...
+                mycol{i2}, imageid{i2}, imc, Markers, ima, imas, wd);
+            err_str = ['CreateQAQC ', log_name, ' finished'];
             mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');
+            e{i2} = 0;
+        catch E
+            if contains(E.message, "expression segmentation")
+                e{i2} = 1;
+                err_str = ['ERROR: ', E.message, ' does not match primary segmentation'];
+                mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');
+            else
+                e{i2} = 1;
+                err_str = ['ERROR: CreateQAQC ', log_name, ' failed'];
+                mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');
+            end
         end
     end
-    %
+else
+    for i2 = 1:length(charts)
+        log_name = extractBefore(charts(i2).name, '_cleaned');
+        disp(charts(i2).name);
+        try
+            err_str = ['CreateQAQC ', log_name, ' started'];
+            mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');
+            [s{i2}, imageid{i2}, mycol{i2}, imc, simage]...
+                =  mkimageid(charts, i2, wd, Markers, doseg); %#ok<PFOUS,PFBNS>
+            s{i2}.fig.CellXPos = round(s{i2}.fig.CellXPos);
+            s{i2}.fig.CellYPos = round(s{i2}.fig.CellYPos);
+            [s{i2},ima, imas] = mkphenim(s{i2}, Markers, mycol{i2},...
+                imageid{i2}, imc, simage, doseg);
+            mkindvphenim(...
+                s{i2}, mycol{i2}, imageid{i2},...
+                imc, simage, Markers, ima, imas);
+            mkexprim(...
+                mycol{i2}, imageid{i2}, imc, Markers, ima, imas, wd);
+            err_str = ['CreateQAQC ', log_name, ' finished'];
+            mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');
+            e{i2} = 0;
+        catch E
+            if contains(E.message, "expression segmentation")
+                e{i2} = 1;
+                err_str = ['ERROR: ', E.message, ' does not match primary segmentation'];
+                mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');
+            else
+                e{i2} = 1;
+                err_str = ['ERROR: CreateQAQC ', log_name, ' failed'];
+                mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');
+            end
+        end
+    end
 end
 %
 % make pie chart figure with heatmap

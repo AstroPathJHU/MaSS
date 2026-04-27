@@ -7,9 +7,12 @@
 %%% and create the paths necessary for the rest of the code
 %% --------------------------------------------------------------
 %%
-function [charts1, e] = mkpaths(Markers, wd, allimages, doseg)
+function [charts1, e] = mkpaths(Markers, wd, allimages, doseg, use_parallel)
 %
 e = 0;
+if nargin < 5
+    use_parallel = false;
+end
 %
 % Remove any old ByImage directory
 %
@@ -60,31 +63,39 @@ charts1 = charts;
 %
 try 
     if length(charts1) > 20 && ~allimages
+        formatspec = strcat(repmat('%s ',[1,5]),{' '},repmat('%f32 ',[1,10]),...
+            { ' %s '},repmat('%f32 ',[1,5]),{' '},repmat('%f32 ',[1,5*layers]),...
+            { ' %s '},repmat('%f32 ',[1,5]),{' '},repmat('%f32 ',[1,5*layers]),...
+            { ' %s '},repmat('%f32 ',[1,5]),{' '},repmat('%f32 ',[1,5*layers]),...
+            { ' %s '},repmat('%f32 ',[1,4]),{' '},repmat('%f32 ',[1,5*layers]),...
+            {' '},repmat('%s ',[1,2]),{' '}, repmat('%f32 ',[1,4]),{' '}, ....
+            repmat('%s ',[1,2]));
+        formatspec = formatspec{1};
+        fd = [wd,'\Phenotyped\Results\tmp_ForFiguresTables'];
+        nms = {charts(:).name};
+        numcharts = length(charts);
+        blank_frac = nan(1,numcharts);
+        immune_count = zeros(1,numcharts);
+        %
+        % expensive file reads are done once per image, then cached for
+        % thresholding/sorting in the loop below
+        %
+        if use_parallel
+            parfor i2 = 1:numcharts
+                [blank_frac(i2), immune_count(i2)] = ...
+                    getfieldmetrics(fd, nms{i2}, wd, Markers, formatspec);
+            end
+        else
+            for i2 = 1:numcharts
+                [blank_frac(i2), immune_count(i2)] = ...
+                    getfieldmetrics(fd, nms{i2}, wd, Markers, formatspec);
+            end
+        end
+        %
         inc = 1;
         while length(charts1) ~= 20 && inc <= 2
-            formatspec = strcat(repmat('%s ',[1,5]),{' '},repmat('%f32 ',[1,10]),...
-                { ' %s '},repmat('%f32 ',[1,5]),{' '},repmat('%f32 ',[1,5*layers]),...
-                { ' %s '},repmat('%f32 ',[1,5]),{' '},repmat('%f32 ',[1,5*layers]),...
-                { ' %s '},repmat('%f32 ',[1,5]),{' '},repmat('%f32 ',[1,5*layers]),...
-                { ' %s '},repmat('%f32 ',[1,4]),{' '},repmat('%f32 ',[1,5*layers]),...
-                {' '},repmat('%s ',[1,2]),{' '}, repmat('%f32 ',[1,4]),{' '}, ....
-                repmat('%s ',[1,2]));
-            formatspec = formatspec{1};
-            %
-            fd = [wd,'\Phenotyped\Results\tmp_ForFiguresTables'];
-            nms = {charts(:).name};
-            query3 = cell(1,length(charts));
-            query2 = cell(1,length(charts));
-            for i2 = 1:length(charts)
-                nm = nms{i2};
-                [query2{i2},query3{i2}] = delextrfields(fd,nm,wd,Markers,...
-                    formatspec,inc);
-            end
-            %
-            query2 = [query2{:}];
-            query3 = [query3{:}];
-            %
-            query3 = query3(query2);
+            query2 = blank_frac < (inc * .25);
+            query3 = immune_count(query2);
             charts1 = charts(query2);
             %
             [~,query4] = sort(query3,2,'descend');
@@ -95,6 +106,9 @@ try
             end
             %
             charts1 = charts1(a);
+            if length(charts1) == 20
+                break
+            end
             inc = inc + .25;
         end
     end
@@ -133,5 +147,40 @@ if ~isempty(charts1) && doseg
         end
     end
 end
+%
+end
+
+function [blank_frac, immune_count] = ...
+    getfieldmetrics(fd, nm, wd, Markers, formatspec)
+%
+fname = [fd,'\',nm];
+fid = extractBefore(nm,'cleaned_phenotype_table');
+fname2 = [wd,'\Phenotyped\',Markers.seg{1},'\',fid,'cell_seg_data_summary.txt'];
+%
+warning('off','MATLAB:table:ModifiedAndSavedVarnames')
+s = readtable(fname2,'Format',formatspec,'Delimiter',...
+    '\t','TreatAsEmpty',{' ','#N/A'});
+%
+try
+    ii1 = table2array(s(strcmp(s.TissueCategory,'Blank')&...
+        strcmp(s.Phenotype,'All'),'TissueCategoryArea_pixels_'));
+    ii2 = table2array(s(strcmp(s.TissueCategory,'All')&...
+        strcmp(s.Phenotype,'All'),'TissueCategoryArea_pixels_'));
+catch
+    ii1 = table2array(s(strcmp(s.TissueCategory,'Blank')&...
+        strcmp(s.Phenotype,'All'),'TissueCategoryArea_squareMicrons_'));
+    ii2 = table2array(s(strcmp(s.TissueCategory,'All')&...
+        strcmp(s.Phenotype,'All'),'TissueCategoryArea_squareMicrons_'));
+end
+%
+if isempty(ii2) || ii2 == 0
+    blank_frac = 1;
+else
+    blank_frac = ii1 / ii2;
+end
+%
+tmp = load(fname);
+tmp = tmp.fData;
+immune_count = height(tmp.fig(strcmp(tmp.fig.Phenotype,Markers.Immune{1}),:));
 %
 end

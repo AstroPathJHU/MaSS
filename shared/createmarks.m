@@ -353,7 +353,7 @@ if height(B) <= 7
         0 1 1;
         1 0 1;];
     mycol.all = [0 0 1;
-        mycolab(1:height(B)-1, :);
+        mycolab(2:height(B)-1, :);
         0 0 0];
     %
 elseif height(B) <= 10 && height(B) > 7
@@ -367,7 +367,7 @@ elseif height(B) <= 10 && height(B) > 7
         1 0 1;
         .7 .7 .7;];
     mycol.all = [0 0 1;
-        mycolab(1:height(B)-1, :);
+        mycolab(2:height(B)-1, :);
         0 0 0];
     %
 else

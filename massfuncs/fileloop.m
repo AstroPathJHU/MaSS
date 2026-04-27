@@ -13,25 +13,14 @@ function [errors, nfiles, Markers] = fileloop(...
 tic
 errors = cell(length(filenms), 1);
 nfiles = 0; %#ok<NASGU>
+use_parallel = false;
 %
-% start the parpool if it is not open;
-% attempt to open with local at max cores, if that does not work attempt 
-% to open with BG1 profile, otherwise parfor should open with default
+% attempt to start/recover pool; if unavailable continue serially
 %
-if isempty(gcp('nocreate'))
-    try
-        numcores = feature('numcores');
-        %
-        if numcores > length(filenms) 
-            numcores = ceil(length(filenms)/2);
-        end
-        %
-        if numcores > 12
-            numcores = 12; %#ok<NASGU>
-        end
-        evalc('parpool("local",numcores)');
-    catch
-    end
+max_workers = min(12, max(1, ceil(length(filenms)/2)));
+[use_parallel, ~, par_msg] = startrobustparpool(max_workers, 'MaSS');
+if ~isempty(par_msg)
+    mywritetolog(wd, sname, logstring, par_msg, 2, 'Tables');
 end
 %
 % loop through the mergetbls function for each sample with error catching
@@ -64,11 +53,20 @@ figtabledir = [wd, '\Phenotyped\Results\tmp_ForFiguresTables'];
 if length(dir(figtabledir)) < 3
     writecell(header, [wd, '\Phenotyped\Results\cells.csv'],'WriteMode','overwrite')
     output = cell(length(filenms), 1);  
-    parfor i1 = 1:length(filenms)
-        errors = cell(length(filenms), 1);
-        [output{i1}, errors] = mergeloop(...
-        filenms, sum_filenames, i1, errors, Markers, wd, 1, sname,...
-        logstring, seg_markers, dep_markers);
+    if use_parallel
+        parfor i1 = 1:length(filenms)
+            errors = cell(length(filenms), 1);
+            [output{i1}, errors] = mergeloop(...
+            filenms, sum_filenames, i1, errors, Markers, wd, 1, sname,...
+            logstring, seg_markers, dep_markers);
+        end
+    else
+        for i1 = 1:length(filenms)
+            errors = cell(length(filenms), 1);
+            [output{i1}, errors] = mergeloop(...
+            filenms, sum_filenames, i1, errors, Markers, wd, 1, sname,...
+            logstring, seg_markers, dep_markers);
+        end
     end
 end
 for i1 = 1:length(output)
@@ -78,7 +76,9 @@ end
 % close parallel loop
 %
 poolobj = gcp('nocreate');
-delete(poolobj);
+if ~isempty(poolobj)
+    delete(poolobj);
+end
 %
 % get final result measures
 %

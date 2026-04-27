@@ -62,6 +62,7 @@ function CreateImageQAQC(wd, sname, MergeConfig, logstring, allimages)
 %
 filepath = fileparts(mfilename('fullpath'));
 addpath(genpath(filepath))
+use_parallel = false;
 %
 version = '0.01.0001';
 if nargin < 4
@@ -101,25 +102,11 @@ if e_code == 1
     return
 end
 %
-% start the parpool if it is not open;
-% attempt to open with local at max cores, if that does not work attempt
-% to open with BG1 profile, otherwise parfor should open with default
+% attempt to start/recover pool; if unavailable continue serially
 %
-if isempty(gcp('nocreate'))
-    try
-        numcores = feature('numcores');
-        if numcores > 6
-            numcores = 6; %#ok<NASGU>
-        end
-        evalc('pool = parpool("local",numcores)');
-    catch EM
-        disp(EM);
-        err_val = 10;
-        e_code = err_handl(wd, sname, logstring, Markers, err_val, 'QA_QC');
-        if e_code == 1
-            return
-        end
-    end
+[use_parallel, ~, par_msg] = startrobustparpool(6, 'CreateImageQAQC');
+if ~isempty(par_msg)
+    mywritetolog(wd, sname, logstring, par_msg, 2, 'QA_QC');
 end
 %
 % make the paths and select the hotspot charts
@@ -133,7 +120,7 @@ mywritetolog(wd, sname, logstring, err_str, 2, 'QA_QC');
 %
 try
     %
-    [charts1, err_val] = mkpaths(Markers, wd, allimages, doseg);
+    [charts1, err_val] = mkpaths(Markers, wd, allimages, doseg, use_parallel);
     %
 catch
     err_val = 11;
@@ -151,7 +138,7 @@ mywritetolog(wd, sname, logstring, err_str, 2, 'QA_QC');
 %
 try 
     %
-    err_val = imageloop(wd, sname, logstring, Markers, charts1, doseg);
+    err_val = imageloop(wd, sname, logstring, Markers, charts1, doseg, use_parallel);
     %
 catch
     err_val = 14;
