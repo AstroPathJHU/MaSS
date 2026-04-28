@@ -82,6 +82,10 @@ else
                 err_str = ['ERROR: ', E.message, ' does not match primary segmentation'];
                 mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');
             else
+                fprintf('Error message: %s\n', E.message);
+                fprintf('File: %s\n', E.stack(1).file);
+                fprintf('Function: %s\n', E.stack(1).name);
+                fprintf('Line: %d\n', E.stack(1).line);
                 e{i2} = 1;
                 err_str = ['ERROR: CreateQAQC ', log_name, ' failed'];
                 mywritetolog(wd, uc, logstring, err_str, 2, 'QA_QC');

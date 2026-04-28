@@ -117,20 +117,25 @@ imageida.size = [props(1).Height, props(1).Width];
 imageida.ds.ImageLength = props(1).Height;
 imageida.ds.ImageWidth = props(1).Width;
 ii = cellfun(@(x) strcmp(x, 'grayscale'), {props.ColorType});
-layers = sum(ii);
-expected_layers = length(Markers.Opals) + 1; % active markers + DAPI
+gray_idx = find(ii);
+layers = numel(gray_idx);
+if isfield(Markers, 'Membrane')
+    expected_layers = length(Markers.Opals) + 3;
+else
+    expected_layers = length(Markers.Opals) + 2;
+end
 if layers ~= expected_layers
     error(['Component image layers do not match active markers: ', ...
         num2str(layers), ' grayscale layer(s) found in component_data.tif, ', ...
         'expected ', num2str(expected_layers), ...
-        ' (DAPI + ', num2str(length(Markers.Opals)), ' active marker channel(s)).']);
+        ' based on MergeConfig (', num2str(length(Markers.Opals)), ...
+        ' active marker channel(s) plus fixed non-marker channels).']);
 end
 %
 for i2 = 1:layers
-    if strcmp(props(i2).ColorType, 'grayscale')
-        im(:,1) = reshape(imread(iname,i2),[],1);
-        imc(:,i2) =(im(:,1)./max(im(:,1)));
-    end
+    plane_idx = gray_idx(i2);
+    im(:,1) = reshape(imread(iname,plane_idx),[],1);
+    imc(:,i2) = (im(:,1)./max(im(:,1)));
 end
 %
 mycol.all = Markers.mycol.all;

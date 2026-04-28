@@ -112,7 +112,11 @@ try
             inc = inc + .25;
         end
     end
-catch
+catch E
+    fprintf('Error message: %s\n', E.message);
+    fprintf('File: %s\n', E.stack(1).file);
+    fprintf('Function: %s\n', E.stack(1).name);
+    fprintf('Line: %d\n', E.stack(1).line);
     e = 12;
     return
 end

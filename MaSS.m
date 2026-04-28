@@ -69,6 +69,7 @@
 %% --------------------------------------------------------------
 %%
 function [err_val] = MaSS(wd, sname, MergeConfig, logstring)
+cleanup_obj = onCleanup(@() cleanup_local_jobs()); %#ok<NASGU>
 %
 filepath = fileparts(mfilename('fullpath'));
 addpath(genpath(filepath))
@@ -176,5 +177,12 @@ else
     mywritetolog(wd, sname, logstring, err_str, 2, 'Tables');
 end
 %
+end
+
+function cleanup_local_jobs()
+try
+    delete(parcluster('local').Jobs)
+catch
+end
 end
 %%

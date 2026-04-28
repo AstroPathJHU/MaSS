@@ -69,8 +69,16 @@ for i1 = 1:length(xy_expr)
     % find segmentations that have the same number of cells
     %
     seg_cells = table2array(seg_table(index,:));
-    expr_cells = cells_table(index,:).(AB_fdnames{i1}); 
-    idx = find(expr_cells == seg_cells);
+    expr_cells = cells_table(index,:).(AB_fdnames{i1});
+    % Compare by segmentation column so indices always map to seg_types.
+    % cells.csv is row-per-cell, so direct find(expr_cells == seg_cells)
+    % can return linear indices larger than number of segmentation types.
+    if isempty(seg_cells) || isempty(expr_cells)
+        idx = [];
+    else
+        val = bsxfun(@eq, seg_cells, expr_cells);
+        idx = find(all(val, 1));
+    end
     if isempty(idx)
         coord = strsplit(imageid.id, '_');
         err_msg = [coord{2}, ' - ', AB_fdnames{i1}, ' expression segmentation'];
@@ -81,12 +89,19 @@ for i1 = 1:length(xy_expr)
     % compare positions to determine current segmenation map
     %
     if length(idx) > 1
+        c_seg = '';
         for i2 = 1:length(idx)
             val = loc_expr{i1} == loc_seg{idx(i2)};
             if sum(val) == length(loc_expr{i1})
                 c_seg = seg_types{idx(i2)};
                 break
             end
+        end
+        if isempty(c_seg)
+            coord = strsplit(imageid.id, '_');
+            err_msg = [coord{2}, ' - no positional match for ', ...
+                AB_fdnames{i1}, ' expression segmentation'];
+            error(err_msg);
         end
     elseif length(idx) == 0
         continue

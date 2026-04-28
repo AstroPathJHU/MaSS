@@ -59,6 +59,7 @@
 %% --------------------------------------------------------------
 %%
 function CreateImageQAQC(wd, sname, MergeConfig, logstring, allimages)
+cleanup_obj = onCleanup(@() cleanup_local_jobs()); %#ok<NASGU>
 %
 filepath = fileparts(mfilename('fullpath'));
 addpath(genpath(filepath))
@@ -122,7 +123,11 @@ try
     %
     [charts1, err_val] = mkpaths(Markers, wd, allimages, doseg, use_parallel);
     %
-catch
+catch E
+    fprintf('Error message: %s\n', E.message);
+    fprintf('File: %s\n', E.stack(1).file);
+    fprintf('Function: %s\n', E.stack(1).name);
+    fprintf('Line: %d\n', E.stack(1).line);
     err_val = 11;
     err_handl(wd, sname, logstring, [], err_val, 'QA_QC');
     return
@@ -158,6 +163,13 @@ end
 err_str = 'CreateQAQC finished';
 mywritetolog(wd, sname, logstring, err_str, 2, 'QA_QC');
 %
+end
+
+function cleanup_local_jobs()
+try
+    delete(parcluster('local').Jobs)
+catch
+end
 end
 
 

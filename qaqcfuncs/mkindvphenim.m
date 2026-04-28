@@ -9,6 +9,7 @@
 %%
 function mkindvphenim(d, mycol, imageid, im,...
     ims, Markers, im_full_color, im_full_color_seg)
+disp("start mkindvphenim");
 %
 [Image,expr] = getset(Markers, imageid);
 %

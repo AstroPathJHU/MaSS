@@ -32,7 +32,7 @@ if err_val == 3
 end
 %
 %
-ii = contains(B.ImageQA,'membrane', 'IgnoreCase', true);
+ii = contains(B.ImageQA,'Membrane', 'IgnoreCase', true);
 %
 if sum(ii) == 1
     Markers.Membrane = B.Target(ii);
@@ -256,6 +256,11 @@ if ~isa(B.Opal, 'cell')
   return
 end
 %
+% remove rows where Opal is NaN-like
+%
+opal_is_nan = cellfun(@(x) strcmpi(strtrim(string(x)), 'NaN'), B.Opal);
+B(opal_is_nan, :) = [];
+%
 % check the data type for the coexpression status column
 %
 if isa(B.CoexpressionStatus,'double')
@@ -299,7 +304,7 @@ B(dr,:) = [];
 %
 % remove the DAPI row
 %
-dr = contains(B.ImageQA,'membrane', 'IgnoreCase', true);
+dr = contains(B.ImageQA,'Membrane', 'IgnoreCase', true);
 B(dr,:) = [];
 %
 % check the last 3 columns are all set as numeric

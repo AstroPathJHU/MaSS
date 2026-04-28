@@ -6,6 +6,7 @@
 %% ---------------------------------------------
 %%
 function [Image,expr] = getset(Markers,imageid)
+disp("start getset");
 %
 Image.mossize = 50;
 expr.namtypes = Markers.expr;
