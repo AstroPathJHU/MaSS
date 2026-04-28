@@ -116,12 +116,22 @@ imageida.size = [props(1).Height, props(1).Width];
 %
 imageida.ds.ImageLength = props(1).Height;
 imageida.ds.ImageWidth = props(1).Width;
+ii = cellfun(@(x) strcmp(x, 'grayscale'), {props.ColorType});
+layers = sum(ii);
+expected_layers = length(Markers.Opals) + 1; % active markers + DAPI
+if layers ~= expected_layers
+    error(['Component image layers do not match active markers: ', ...
+        num2str(layers), ' grayscale layer(s) found in component_data.tif, ', ...
+        'expected ', num2str(expected_layers), ...
+        ' (DAPI + ', num2str(length(Markers.Opals)), ' active marker channel(s)).']);
+end
 %
-% inForm often exports a fixed spectral deck (DAPI + 480/520/.../780) even
-% when MergeConfig omits unused opals (e.g. no 480 or no 540). In that case
-% grayscale page count exceeds length(Markers.Opals)+1 and we map by Opal.
-%
-imc = load_component_imc(iname, props, Markers);
+for i2 = 1:layers
+    if strcmp(props(i2).ColorType, 'grayscale')
+        im(:,1) = reshape(imread(iname,i2),[],1);
+        imc(:,i2) =(im(:,1)./max(im(:,1)));
+    end
+end
 %
 mycol.all = Markers.mycol.all;
 %
@@ -197,91 +207,4 @@ else
     simage = zeros(imageida.size);
 end
 %
-end
-%% load_component_imc
-% Load normalized component stack columns: column 1 = DAPI, then one column
-% per Markers.Opals entry (MergeConfig order). Supports (1) strict
-% one-to-one page order when TIFF grayscale count matches MergeConfig, or
-% (2) PhenoCycler-style full deck DAPI + [480 520 540 570 620 650 690 780]
-% when the export contains all spectral slots but MergeConfig lists a subset.
-function imc = load_component_imc(iname, props, Markers)
-%
-STANDARD_OPALS_AFTER_DAPI = [480, 520, 540, 570, 620, 650, 690, 780];
-n_standard_deck = 1 + numel(STANDARD_OPALS_AFTER_DAPI);
-%
-is_gray = strcmp({props.ColorType}, 'grayscale');
-gray_idx = find(is_gray);
-if isempty(gray_idx)
-    error(['No grayscale pages in component_data.tif: ', iname]);
-end
-%
-ref_h = props(gray_idx(1)).Height;
-ref_w = props(gray_idx(1)).Width;
-same_hw = arrayfun(@(k) props(k).Height == ref_h && props(k).Width == ref_w, gray_idx);
-gray_idx = gray_idx(same_hw);
-n_gray = numel(gray_idx);
-%
-expected_cols = 1 + length(Markers.Opals);
-%
-if n_gray == expected_cols
-    imc = read_gray_pages_sequential(iname, props, gray_idx, expected_cols);
-    return
-end
-%
-if n_gray == n_standard_deck && all(ismember(Markers.Opals, STANDARD_OPALS_AFTER_DAPI))
-    warning('MaSS:ComponentTiffDeck:Remap', ...
-        ['component_data.tif has the full %d-plane spectral stack (DAPI + 8 Opals); ', ...
-        'mapping MergeConfig opals %s onto standard deck [DAPI %s].'], ...
-        n_gray, mat2str(Markers.Opals(:)'), mat2str(STANDARD_OPALS_AFTER_DAPI));
-    imc = zeros(ref_h * ref_w, expected_cols);
-    imc(:, 1) = normalize_plane(imread(iname, gray_idx(1)));
-    for k = 1:length(Markers.Opals)
-        op = Markers.Opals(k);
-        slot = find(STANDARD_OPALS_AFTER_DAPI == op, 1);
-        if isempty(slot)
-            error(['Opal ', num2str(op), ...
-                ' is not in the standard PhenoCycler deck; cannot map component_data.tif']);
-        end
-        tif_page = gray_idx(1 + slot);
-        imc(:, k + 1) = normalize_plane(imread(iname, tif_page));
-    end
-    return
-end
-%
-% Detailed failure: explain mismatch for debugging (e.g. missing 480/540
-% in merge vs export, or extra non-spectral pages).
-%
-layer_lines = cell(n_gray, 1);
-for u = 1:n_gray
-    k = gray_idx(u);
-    layer_lines{u} = sprintf( ...
-        '  page %u: %ux%u %s', k, props(k).Height, props(k).Width, props(k).ColorType);
-end
-bad_opals = Markers.Opals(~ismember(Markers.Opals, STANDARD_OPALS_AFTER_DAPI));
-error(['Component image layers do not match active markers.\n', ...
-    '  Grayscale pages (full-field): ', num2str(n_gray), ...
-    '\n  Expected matrix columns (DAPI + MergeConfig opals): ', num2str(expected_cols), ...
-    '\n  MergeConfig Opals (numeric): ', mat2str(Markers.Opals(:)'), ...
-    '\n  Opals not in standard deck [480 520 540 570 620 650 690 780]: ', mat2str(bad_opals(:)'), ...
-    '\n  Full-deck remap applies only when grayscale count == ', num2str(n_standard_deck), ...
-    ' and every MergeConfig opal is in the standard list.\n', ...
-    '  Grayscale pages:\n', strjoin(layer_lines, '\n')]);
-end
-%
-function vec = normalize_plane(im_plane)
-vec = double(reshape(im_plane, [], 1));
-m = max(vec);
-if m > 0
-    vec = vec ./ m;
-end
-end
-%
-function imc = read_gray_pages_sequential(iname, props, gray_idx, ncols)
-ref_h = props(gray_idx(1)).Height;
-ref_w = props(gray_idx(1)).Width;
-imc = zeros(ref_h * ref_w, ncols);
-for j = 1:ncols
-    tif_page = gray_idx(j);
-    imc(:, j) = normalize_plane(imread(iname, tif_page));
-end
 end
