@@ -142,22 +142,6 @@ if e_code == 1
     return
 end
 %
-% preflight-check component stacks against MergeConfig opals before merge
-%
-err_str = 'preflight validating component_tiff channel layout';
-mywritetolog(wd, sname, logstring, err_str, 2, 'Tables');
-%
-try
-    [err_val, err_msg] = validatecomponentstacks(wd, filenms, Markers);
-catch
-    err_val = 22;
-    err_msg = '';
-end
-e_code = err_handl(wd, sname, logstring, Markers, err_val, 'Tables', err_msg);
-if e_code == 1
-    return
-end
-%
 % run the file loop for the sample
 %
 err_str = ['merging ',num2str(length(filenms)), ' file(s)'];
