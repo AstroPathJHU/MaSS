@@ -11,8 +11,8 @@
 function o = getexprmark(q,Markers)
 o = q;
 if ~isempty(o.fig)
-    ii = ismember([480;520;540;570;620;650;690;780],Markers.Opals);
-    bins = [2,4,8,16,32,64,128,256];
+    ii = ismember([480;520;540;570;620;650;670;690;780],Markers.Opals);
+    bins = [2,4,8,16,32,64,128,256,512];
     bins(~ii) = [];
     ii = ismember(Markers.all,Markers.expr);
     bins = bins(ii);
