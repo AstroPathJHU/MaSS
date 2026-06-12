@@ -203,8 +203,9 @@ This table contains 62 columns:
       - 570: 16
       - 620: 32
       - 650: 64
-      - 690: 128
-      - 780: 256 <br>
+      - 670: 128
+      - 690: 256
+      - 780: 512 <br>
       
       
 The code also produces a folder named ```*\Results\tmp_inform_data```, which contains .mat files for the images that meet the Image QA criteria, detailed below. These .mat files contain a copy of the ```*_cleaned_phenotype_table.csv``` in an easily accessible MATLAB format.
