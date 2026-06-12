@@ -216,10 +216,10 @@ cols = [];
 %
 % separate the number into binary columns in order of Opals
 %
-% binary numbers = [1,2,4,8,16,32,64,128,256];
-% Opals = [DAPI,480,520,540,570,620,650,690,780];
+% binary numbers = [1,2,4,8,16,32,64,128,256,512];
+% Opals = [DAPI,480,520,540,570,620,650,670,690,780];
 %
-total_opals = [480,520,540,570,620,650,690,780]; % Opals without DAPI
+total_opals = [480,520,540,570,620,650,670,690,780]; % Opals without DAPI
 %
 t2 = tp2.ExprPhenotype;
 phenb = [];
