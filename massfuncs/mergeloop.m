@@ -41,13 +41,19 @@ function [output, errors] = mergeloop(...
         end
         %
     catch EM
-        if contains(EM.message, "file format")
-            e_code = 21;
+        output = '';
+        if ~isempty(EM.stack)
+            err_msg = [fname.name, ' | ', EM.message, ' | ', ...
+                EM.stack(1).name, ' line ', num2str(EM.stack(1).line)];
         else
-            e_code = 14;
+            err_msg = [fname.name, ' | ', EM.message];
         end
+        %
+        % Preserve detailed exception text in logs instead of collapsing to
+        % generic codes 14/21.
+        e_code = 20;
         disp(EM);
-        err_handl(wd, sname, logstring, log_name, e_code, 'Tables', '');
-        errors{i1} = 1;  
+        err_handl(wd, sname, logstring, log_name, e_code, 'Tables', err_msg);
+        errors{i1} = e_code;
     end
     %
