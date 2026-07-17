@@ -27,10 +27,23 @@ p.fig = [table(CellID),p.fig];
 %
 orows = find(strcmp(p.fig.Phenotype, 'Other'));
 %
+% Load every segmentation owner's binary_seg_maps (layer 4). Polygon
+% lookup uses the map matching the CellNum's parent SegStatus:
+%   coexpression -> endsWith marker (row addcoex keeps)
+%   plain lineage -> that marker
+%   Other -> primary
+%
+[seg_maps, im_size, ok] = load_seg_maps(p, Markers);
+if ~ok
+    p = 18;
+    return
+end
+s = {im_size};
+p.size.T = 2; p.size.B = s{1}(1)-1; p.size.L = 2; p.size.R = s{1}(2)-1;
+%
 % get segmentation outlines for all alternative segmentations
 %
 im3 = cell(length(Markers.altseg));
-tcellids = cell(length(Markers.altseg));
 trows = false(max(CellID),length(Markers.altseg));
 %
 for i1 = 1:length(Markers.altseg)
@@ -47,64 +60,27 @@ for i1 = 1:length(Markers.altseg)
         s_markers = [s_markers, Markers.add(iis)];
     end
     %
-    % get folder and image names for altseg
-    %
-    fdname = [extractBefore(p.fname.folder,Markers.all{1}),...
-        markalt,'\'];
-    iname = [fdname,extractBefore(p.fname.name,...
-        "]_cell_seg"),']_binary_seg_maps.tif'];
-    if isempty(iname)
-        iname = [fdname,extractBefore(p.fname.name,...
-            "]_CELL_SEG"),']_binary_seg_maps.tif'];
-    end
-    %
     % get rows of altseg cells
     %
     trows(:,i1) = ismember(p.fig.Phenotype, s_markers);
+    ids = double(p.fig.CellNum(trows(:,i1),:));
+    phs = p.fig.Phenotype(trows(:,i1));
     %
-    % get inForm cellids of altseg cells
-    %
-    tcellids{i1} = double(p.fig.CellNum(trows(:,i1),:));
-    %
-    % read in the image for segmentation 
-    %
-    im = imread(iname,4);
-    %
-    % convert it to a linear index of labels
-    %
-    im = label2idx(im);
-    im3{i1} = im(1,tcellids{i1});
+    [polys, ok] = lookup_polys_by_kept_marker(ids, phs, Markers, seg_maps);
+    if ~ok
+        p = 18;
+        return
+    end
+    im3{i1} = polys;
 end
 %
-%get filenames for 1ry seg images
-%
-iname = fullfile(p.fname.folder,p.fname.name);
-iname = replace(iname, Markers.all{1}, Markers.seg{1});
-iname = [extractBefore(iname,"]_cell_seg"),']_binary_seg_maps.tif'];
-if isempty(iname)
-    iname = [extractBefore(iname,"]_CELL_SEG"),']_binary_seg_maps.tif'];
-end
-%
-% get cellids of 1ry seg cells
+% primary-seg rows (not claimed by an altseg group)
 %
 trowsall = sum(trows,2) > 0;
 cellids = double(p.fig.CellNum(~trowsall,:));
-%
-% read in image convert to linear index 
-%
-im2 = imread(iname,4);
-im4 = label2idx(im2);
-%
-% get image dimensions
-%
-s = {size(im2)};
-p.size.T = 2; p.size.B = s{1}(1)-1; p.size.L = 2; p.size.R = s{1}(2)-1;
-%
-% Remove non 1ry cells
-%
-try
-    im4 = im4(1,cellids);
-catch EM
+ph_pri = p.fig.Phenotype(~trowsall);
+[im4, ok] = lookup_polys_by_kept_marker(cellids, ph_pri, Markers, seg_maps);
+if ~ok
     p = 18;
     return
 end
@@ -166,5 +142,97 @@ p.fig = vertcat(p.fig,nmr);
 %
 CellID = (1:1:height(p.fig))';
 p.fig.CellID = CellID;
+%
+end
+
+function [seg_maps, im_size, ok] = load_seg_maps(p, Markers)
+%
+ok = true;
+im_size = [];
+seg_maps = containers.Map('KeyType', 'double', 'ValueType', 'any');
+%
+owners = [Markers.seg(:); Markers.altseg(:)];
+for i1 = 1:numel(owners)
+    owner = owners{i1};
+    SS = double(Markers.SegStatus(strcmp(Markers.all, owner)));
+    iname = fullfile(p.fname.folder, p.fname.name);
+    iname = replace(iname, Markers.all{1}, owner);
+    iname2 = [extractBefore(iname, "]_cell_seg"), ']_binary_seg_maps.tif'];
+    if isempty(extractBefore(iname, "]_cell_seg"))
+        iname2 = [extractBefore(iname, "]_CELL_SEG"), ']_binary_seg_maps.tif'];
+    end
+    try
+        im = imread(iname2, 4);
+    catch
+        ok = false;
+        return
+    end
+    if isempty(im_size)
+        im_size = size(im);
+    end
+    seg_maps(SS) = label2idx(im);
+end
+%
+end
+
+function parent_SS = cellnum_parent_segstatus(ph, Markers)
+%
+% SegStatus of the marker whose CellNum is on this row:
+%   coexpression -> endsWith marker (addcoex keeps that row)
+%   plain lineage -> that marker
+%   Other -> primary
+%
+ph = char(string(ph));
+if strcmp(ph, 'Other')
+    parent_SS = double(Markers.SegStatus(strcmp(Markers.all, Markers.seg{1})));
+    return
+end
+if ~isempty(Markers.add) && any(strcmp(string(Markers.add), string(ph)))
+    ew = cellfun(@(x) endsWith(ph, x), Markers.all);
+    matches = Markers.all(ew);
+    if ~isempty(matches)
+        [~, ix] = max(cellfun(@numel, matches));
+        parent_SS = double(Markers.SegStatus(strcmp(Markers.all, matches{ix})));
+        return
+    end
+end
+ii = strcmp(Markers.all, ph);
+if any(ii)
+    parent_SS = double(Markers.SegStatus(ii));
+else
+    parent_SS = double(Markers.SegStatus(strcmp(Markers.all, Markers.seg{1})));
+end
+%
+end
+
+function [polys, ok] = lookup_polys_by_kept_marker(ids, phs, Markers, seg_maps)
+%
+ok = true;
+polys = cell(1, numel(ids));
+if isempty(ids)
+    return
+end
+%
+phs = cellstr(string(phs));
+parent_SS = zeros(numel(ids), 1);
+for i1 = 1:numel(ids)
+    parent_SS(i1) = cellnum_parent_segstatus(phs{i1}, Markers);
+end
+%
+uSS = unique(parent_SS)';
+for SS1 = uSS
+    if ~isKey(seg_maps, SS1)
+        ok = false;
+        return
+    end
+    im = seg_maps(SS1);
+    sel = parent_SS == SS1;
+    these = ids(sel);
+    if any(these < 1 | these > numel(im))
+        ok = false;
+        return
+    end
+    polys(sel) = im(1, these);
+end
 %
 end

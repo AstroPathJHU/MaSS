@@ -104,7 +104,8 @@ if err_val ~= 0
             err_str = ['ERROR: Cell segmentation file missing'];
             e_code = 1;
         case 20
-            err_str = strjoin(['ERROR:' err_msg]);
+            % err_msg may be char, string, or cellstr depending on caller
+            err_str = char(strjoin(["ERROR:", string(err_msg)], " "));
             e_code = 1;
         case 21
             err_str = ['ERROR: Check for empty or corrupt inform output files'];
