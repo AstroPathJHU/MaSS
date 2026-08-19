@@ -195,17 +195,16 @@ This table contains 62 columns:
      - The columns are ordered by category and then opal such that all MeanNucleusXXX columns come before MeanMembraneXXX columns and so on
      - These columns may contain NULL values but are otherwise float32
      - A negative 1 value indicates that the opal was not used in the panel
-   - ExprPhenotype - the expression marker bit integer value, the values correspond as follows
-      - DAPI: 0
+   - ExprPhenotype - the expression marker bit integer value (`ExprPhenotype.val` in SQL / `OPAL_BITS` in Python). These **must match** `WSICore.dbo.ExprPhenotype`:
+      - DAPI: 1
       - 480: 2
       - 520: 4
       - 540: 8
       - 570: 16
       - 620: 32
       - 650: 64
-      - 670: 128
-      - 690: 256
-      - 780: 512 <br>
+      - 690: 128
+      - 780: 256 <br>
       
       
 The code also produces a folder named ```*\Results\tmp_inform_data```, which contains .mat files for the images that meet the Image QA criteria, detailed below. These .mat files contain a copy of the ```*_cleaned_phenotype_table.csv``` in an easily accessible MATLAB format.
